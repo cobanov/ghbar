@@ -238,17 +238,24 @@ dayanırsa menüde uyarı satırı (§13).
 `repoList = [alice/noisy]`, `repoListIsAllowList = false` için:
 
 ```
-prs    = "is:pr is:open user:alice -author:alice -repo:alice/noisy"
-issues = "is:issue is:open user:alice -author:alice -repo:alice/noisy"
-review = "is:pr is:open review-requested:alice"
+prs    = "is:pr is:open user:alice -author:@me -repo:alice/noisy"
+issues = "is:issue is:open user:alice -author:@me -repo:alice/noisy"
+review = "is:pr is:open review-requested:@me"
 ```
 
 Kurallar:
 
 - Her hesap bir `user:<hesap>` parçası olur.
-- Oturum açan kullanıcı için bir `-author:<login>` parçası eklenir — kendi
-  açtıklarını görmek istemiyoruz. (Sadece oturum sahibi; izlenen bir
-  organizasyonun adı yazar olamaz.)
+- Kendi açtıklarını elemek için **`-author:@me`** eklenir. `@me`, GitHub
+  aramada "token'ın sahibi" anlamına gelen kısayol; **doğrulandı** —
+  `-author:@me` ile `-author:cobanov` birebir aynı sonucu veriyor.
+
+  Bu, tasarımdaki bir sıra bağımlılığını kaldırıyor: sorgunun artık
+  kullanıcının login'ini bilmesi gerekmiyor, dolayısıyla "önce `viewer`'ı
+  çek, sonra sorguyu kur" diye iki aşamalı bir açılış gerekmiyor.
+  Aynı sebeple `review` sorgusu `review-requested:@me` kullanır ve
+  yapılandırılmamış ilk çalıştırmanın varsayılan hesabı `@me` olur —
+  kullanıcı hiçbir şey ayarlamadan doğru sonucu görür.
 - `repoListIsAllowList == false` → her repo `-repo:<owner>/<ad>` olur.
 - `repoListIsAllowList == true` → her repo `repo:<owner>/<ad>` olur ve
   `user:` parçaları **kullanılmaz** (repo listesi kapsamı zaten belirliyor).
@@ -721,6 +728,7 @@ Tasarım kararlarının dayandığı gerçek sayılar. Ölçüm hesabı: `cobano
 | `-repo:` niteleyicisi | çalışıyor (64 → 14) |
 | Çoklu `repo:` | VEYA anlamında, çalışıyor |
 | Sorgu uzunluk tavanı | **3085 karakterde hata yok**, en sondaki niteleyici bile uygulanıyor |
+| `user:@me` / `-author:@me` / `review-requested:@me` | üçü de çalışıyor, login'i açıkça yazan sürümle **birebir aynı** sonuç |
 
 Son iki satır önemli: filtreyi sorguya gömme kararı (§6) buna dayanıyor.
 Belgelenen 256 karakter sınırı GraphQL aramasında geçerli değil.
