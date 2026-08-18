@@ -124,11 +124,17 @@ final class MenuBuilder {
         // olarak akiyor — sutun hizalama veya saga yaslama yok.
         let text = NSMutableAttributedString(
             string: parts.label,
-            attributes: [.foregroundColor: seen ? NSColor.secondaryLabelColor : NSColor.labelColor]
+            attributes: [
+                .font: MenuFont.label,
+                .foregroundColor: seen ? NSColor.secondaryLabelColor : NSColor.labelColor,
+            ]
         )
         text.append(NSAttributedString(
             string: "  \(parts.detail)  \(parts.age)",
-            attributes: [.foregroundColor: NSColor.secondaryLabelColor]
+            attributes: [
+                .font: MenuFont.detail,
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]
         ))
 
         let menuItem = NSMenuItem(
@@ -146,11 +152,11 @@ final class MenuBuilder {
     private func profileItem(_ viewer: Viewer) -> NSMenuItem {
         let text = NSMutableAttributedString(
             string: viewer.displayName,
-            attributes: [.foregroundColor: NSColor.labelColor]
+            attributes: [.font: MenuFont.label, .foregroundColor: NSColor.labelColor]
         )
         text.append(NSAttributedString(
             string: "  @\(viewer.login)",
-            attributes: [.foregroundColor: NSColor.secondaryLabelColor]
+            attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
         ))
 
         let item = NSMenuItem(title: "", action: #selector(AppDelegate.openProfile), keyEquivalent: "")
@@ -166,11 +172,11 @@ final class MenuBuilder {
 
         let text = NSMutableAttributedString(
             string: "Rate Limit",
-            attributes: [.foregroundColor: NSColor.labelColor]
+            attributes: [.font: MenuFont.label, .foregroundColor: NSColor.labelColor]
         )
         text.append(NSAttributedString(
             string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))  resets \(resets)",
-            attributes: [.foregroundColor: NSColor.secondaryLabelColor]
+            attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
         ))
 
         let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -210,6 +216,22 @@ final class MenuBuilder {
         item.target = target
         return item
     }
+}
+
+/// Menu yazi tipleri.
+///
+/// attributedTitle kullanildiginda AppKit menunun kendi yazi tipini
+/// uygulamiyor, varsayilana dusuyor ve satirlar sistem menulerinden iri
+/// duruyor. menuFont(ofSize: 0) "sistemin standart menu boyutu" demek.
+/// Depolanan degil hesaplanan ozellikler: NSFont bir sinif ve Sendable degil,
+/// Swift 6 statik olarak tutulmasina izin vermiyor. NSFont uretimi AppKit
+/// tarafindan onbelleklendigi icin her cagride yeniden istemek bedava.
+enum MenuFont {
+    static var label: NSFont { .menuFont(ofSize: 0) }
+
+    /// Ikincil metin bir punto kucuk: hem hiyerarsiyi guclendiriyor hem
+    /// satirin en uzun parcasi oldugu icin genisligi gozle gorulur dusuruyor.
+    static var detail: NSFont { .menuFont(ofSize: NSFont.systemFontSize - 1) }
 }
 
 /// Ayri bir "okunmadi" noktasi cizilmiyor — ikonun rengi bu isi goruyor.

@@ -12,10 +12,10 @@ enum RowText {
     /// genislikte oluyor.
     ///
     /// Menuyu darlastirmak/genisletmek icin degistirilecek tek sayi budur.
-    static let rowBudget = 46
+    static let rowBudget = 38
 
     /// Baslik bundan kisaya dusurulmez; asagisinda hicbir sey anlatmiyor.
-    static let minimumTitle = 16
+    static let minimumTitle = 14
 
     /// Tek hesap izleniyorsa her satirda kendi adini tekrar gormek gereksiz
     /// gurultu; sahip adi yalnizca birden fazla hesap izlenirken yazilir.
