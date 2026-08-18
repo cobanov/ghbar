@@ -63,8 +63,13 @@ final class MenuBuilder {
         menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: ""))
 
         if LaunchAtLogin.isAvailable {
+            // Tik, NSMenuItem.state yerine gorsel sutununda: state kullanmak
+            // menuye AYRI bir durum sutunu ekletiyor ve butun satirlari saga
+            // kaydiriyor. Gorsel sutunu zaten var, bedava.
             let launch = action("Launch at Login", #selector(AppDelegate.toggleLaunchAtLogin), key: "")
-            launch.state = LaunchAtLogin.isEnabled ? .on : .off
+            launch.image = LaunchAtLogin.isEnabled
+                ? Icons.symbol("checkmark", color: .labelColor)
+                : Icons.blank
             menu.addItem(launch)
         }
 
@@ -175,7 +180,7 @@ final class MenuBuilder {
         let item = NSMenuItem(title: "", action: #selector(AppDelegate.openProfile), keyEquivalent: "")
         item.attributedTitle = text
         item.target = target
-        item.image = Avatar.cached(size: 18)
+        item.image = Avatar.cached(size: Icons.size)
         return item
     }
 
@@ -210,13 +215,13 @@ final class MenuBuilder {
         )
         item.target = target
         item.representedObject = section.kind.rawValue
-        item.image = NSImage(systemSymbolName: "checkmark.circle", accessibilityDescription: nil)
+        item.image = Icons.symbol("checkmark.circle", color: .secondaryLabelColor)
         return item
     }
 
     private func errorItem(_ error: AppError) -> NSMenuItem {
         let item = NSMenuItem(title: error.menuText, action: nil, keyEquivalent: "")
-        item.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+        item.image = Icons.symbol("exclamationmark.triangle", color: .systemOrange)
         item.isEnabled = false
         return item
     }
@@ -269,6 +274,21 @@ enum MenuFont {
 /// Ayri bir "okunmadi" noktasi cizilmiyor — ikonun rengi bu isi goruyor.
 enum Icons {
 
+    /// Tek boyut. NSMenu gorsel sutununu EN BUYUK gorsele gore olculendiriyor;
+    /// tek bir buyuk gorsel butun satirlari saga kaydiriyor.
+    static let size: CGFloat = 15
+
+    /// Gorseli olan ve olmayan satirlarin hizasi kaymasin diye seffaf dolgu.
+    static var blank: NSImage {
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus(); image.unlockFocus()
+        return image
+    }
+
+    static func symbol(_ name: String, color: NSColor) -> NSImage? {
+        tinted(name, color)
+    }
+
     static func forItem(_ item: Item, seen: Bool) -> NSImage? {
         let symbol = item.kind == .pullRequest
             ? "arrow.trianglehead.pull"
@@ -291,7 +311,9 @@ enum Icons {
 
     private static func tinted(_ symbol: String, _ color: NSColor) -> NSImage? {
         let configuration = NSImage.SymbolConfiguration(paletteColors: [color])
-        return NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
             .withSymbolConfiguration(configuration)
+        image?.size = NSSize(width: size, height: size)
+        return image
     }
 }
