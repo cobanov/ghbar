@@ -6,6 +6,11 @@ let package = Package(
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(name: "GHBar", path: "Sources/GHBar"),
-        .testTarget(name: "GHBarTests", dependencies: ["GHBar"], path: "Tests/GHBarTests"),
+        .testTarget(
+            name: "GHBarTests",
+            dependencies: ["GHBar"],
+            path: "Tests/GHBarTests",
+            resources: [.copy("Fixtures")]
+        ),
     ]
 )
