@@ -23,9 +23,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(
-            systemSymbolName: "arrow.trianglehead.pull",
-            accessibilityDescription: "GHBar"
+        statusItem.button?.image = Icons.statusBar()
+        // Sayac esit genislikli rakamlarla: sayi degistiginde menu cubugundaki
+        // komsu ikonlar saga sola oynamasin.
+        statusItem.button?.font = .monospacedDigitSystemFont(
+            ofSize: NSFont.systemFontSize, weight: .regular
         )
 
         menuBuilder = MenuBuilder(target: self)
@@ -172,7 +174,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Menuyu art arda acip kapatmak gereksiz istek uretmesin diye 30 saniyelik
     /// alt sinir var.
     func menuWillOpen(_ menu: NSMenu) {
-        guard let lastRefresh else { return }
-        if Date().timeIntervalSince(lastRefresh) > 30 { refresh() }
+        // lastRefresh nil = henuz hic basarili yenileme olmadi (ilk deneme
+        // basarisiz olmus olabilir); menuyu acmak yeniden denemek icin en
+        // dogru an. distantPast, 30 saniyelik esigi otomatik gecirir.
+        let last = lastRefresh ?? .distantPast
+        if Date().timeIntervalSince(last) > 30 { refresh() }
     }
 }

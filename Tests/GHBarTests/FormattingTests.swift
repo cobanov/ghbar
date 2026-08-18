@@ -40,26 +40,6 @@ struct FormattingAgeTests {
     }
 }
 
-@Suite("Formatting.truncate")
-struct FormattingTruncateTests {
-    @Test("sinirin altindaki metin degismez") func short() {
-        #expect(Formatting.truncate("Short title", limit: 48) == "Short title")
-    }
-
-    @Test("uzun metin kelime ortasindan kesilmez") func wordBoundary() {
-        let input = "Let the last row scroll clear of the floating tab bar"
-        let out = Formatting.truncate(input, limit: 24)
-        #expect(out == "Let the last row scroll…")
-        #expect(!out.contains("scrol…"))
-    }
-
-    @Test("bosluksuz uzun kelime yine de kesilir") func noSpaces() {
-        let out = Formatting.truncate(String(repeating: "a", count: 60), limit: 10)
-        #expect(out.count == 11)          // 10 karakter + elipsis
-        #expect(out.hasSuffix("…"))
-    }
-}
-
 @Suite("Formatting.grouped")
 struct FormattingGroupedTests {
     @Test("binlik ayrac") func thousands() {

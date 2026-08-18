@@ -17,17 +17,6 @@ enum Formatting {
         }
     }
 
-    /// Basligi kisaltir. Kelime ortasindan kesmemek icin son bosluga kadar geri
-    /// gider; hic bosluk yoksa sert keser.
-    static func truncate(_ text: String, limit: Int = 48) -> String {
-        guard text.count > limit else { return text }
-        let cut = text.prefix(limit)
-        if let lastSpace = cut.lastIndex(of: " ") {
-            return "\(cut[..<lastSpace])…"
-        }
-        return "\(cut)…"
-    }
-
     /// 4911 -> "4,911"
     static func grouped(_ value: Int) -> String {
         let f = NumberFormatter()

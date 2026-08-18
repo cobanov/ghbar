@@ -57,16 +57,16 @@ final class MenuBuilder {
         }
 
         // Kisayol yok: NSMenu, herhangi bir ogede kisayol varsa TUM menuye
-        // sabit genislikte bir kisayol sutunu ekliyor. Sutun, metin ne kadar
-        // kisalirsa kisalsin duruyor ve sagda olu bosluk birakiyor.
-        menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: ""))
-        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: ""))
+        // sabit genislikte bir kisayol sutunu ekliyor ve sagda olu bosluk
+        // birakiyor.
+        menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile)))
+        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow)))
 
         if LaunchAtLogin.isAvailable {
             // Tik, NSMenuItem.state yerine gorsel sutununda: state kullanmak
             // menuye AYRI bir durum sutunu ekletiyor ve butun satirlari saga
             // kaydiriyor. Gorsel sutunu zaten var, bedava.
-            let launch = action("Launch at Login", #selector(AppDelegate.toggleLaunchAtLogin), key: "")
+            let launch = action("Launch at Login", #selector(AppDelegate.toggleLaunchAtLogin))
             launch.image = LaunchAtLogin.isEnabled
                 ? Icons.symbol("checkmark", color: .labelColor)
                 : Icons.blank
@@ -75,11 +75,11 @@ final class MenuBuilder {
 
         menu.addItem(.separator())
         menu.addItem(disabled("GHBar \(AppVersion.current)"))
-        menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit), key: ""))
+        menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit)))
         return menu
     }
 
-    // MARK: - Parcalar
+    // MARK: - Bolum satirlari
 
     private func addRows(of section: Section, to menu: NSMenu, input: Input) {
         let visible = section.rows.prefix(input.maxRowsPerSection)
@@ -91,6 +91,7 @@ final class MenuBuilder {
         guard overflow > 0 else { return }
 
         let more = NSMenuItem(title: "\(overflow) more…", action: nil, keyEquivalent: "")
+        more.image = Icons.blank   // ikonlu satirlarla ayni hizada baslasin
         let submenu = NSMenu()
         for row in section.rows.dropFirst(visible.count) {
             submenu.addItem(item(for: row, input: input))
@@ -106,24 +107,27 @@ final class MenuBuilder {
 
         case .group(let repository, let items):
             let unseen = items.contains { !input.isSeen($0.url) }
-            let menuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
             let name = input.showOwner
                 ? repository
                 : (repository.split(separator: "/").last.map(String.init) ?? repository)
-            let groupText = NSMutableAttributedString(
-                string: name,
+
+            let text = NSMutableAttributedString(
+                string: TextFit.truncate(name, font: MenuFont.label,
+                                         maxWidth: MenuFont.rowWidth * 0.7),
                 attributes: [
                     .font: MenuFont.label,
                     .foregroundColor: unseen ? NSColor.labelColor : NSColor.secondaryLabelColor,
                 ]
             )
-            groupText.append(NSAttributedString(
+            text.append(NSAttributedString(
                 string: "\t\(items.count)",
                 attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
             ))
-            groupText.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
-                                   range: NSRange(location: 0, length: groupText.length))
-            menuItem.attributedTitle = groupText
+            text.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
+                              range: NSRange(location: 0, length: text.length))
+
+            let menuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+            menuItem.attributedTitle = text
             menuItem.image = Icons.folder(unseen: unseen)
             let submenu = NSMenu()
             for entry in items { submenu.addItem(itemRow(entry, input: input)) }
@@ -132,21 +136,46 @@ final class MenuBuilder {
         }
     }
 
+    /// Bir PR/issue satiri. Genisligin tamami punto ile olculuyor:
+    ///
+    ///   [etiket][  ][baslik — kalan boslugu doldurur][sekme][yas]
+    ///
+    /// Yas, rowWidth'teki saga yasli sekme duraginda bitiyor; baslik ise
+    /// "rowWidth - etiket - yas - nefes payi" kadar yer kaplayacak sekilde
+    /// olculup kirpiliyor. Onceki surum basligi KARAKTER sayisiyla kirpiyordu
+    /// ve karakter ile punto ayni sey olmadigi icin kimi satir duraktan cok
+    /// once bitip ortada delik birakiyor, kimi duragi asip yasin ustune
+    /// yapisiyordu. Olcum gercek yazi tipiyle yapilinca satirlar iki kenara
+    /// birden yasli oluyor.
     private func itemRow(_ entry: Item, input: Input) -> NSMenuItem {
-        let parts = RowText.parts(for: entry, showOwner: input.showOwner, now: input.now)
         let seen = input.isSeen(entry.url)
+        let age = Formatting.age(of: entry.createdAt, now: input.now)
 
-        // Raycast menulerindeki temizligin sirri: deger, etiketin hemen devami
-        // olarak akiyor — sutun hizalama veya saga yaslama yok.
+        // Repo adi en fazla satirin yarisi; numara asla kirpilmaz.
+        let suffix = " #\(entry.number)"
+        let nameRoom = MenuFont.rowWidth * 0.5 - TextFit.width(of: suffix, font: MenuFont.label)
+        let name = input.showOwner ? entry.repository : entry.repositoryName
+        let label = TextFit.truncate(name, font: MenuFont.label, maxWidth: nameRoom) + suffix
+
+        let lead = "  "
+        let breathing: CGFloat = 14   // baslik ile yas arasindaki asgari bosluk
+        let titleRoom = MenuFont.rowWidth
+            - TextFit.width(of: label, font: MenuFont.label)
+            - TextFit.width(of: lead, font: MenuFont.detail)
+            - TextFit.width(of: age, font: MenuFont.detail)
+            - breathing
+        let title = TextFit.truncate(entry.title, font: MenuFont.detail,
+                                     maxWidth: max(40, titleRoom))
+
         let text = NSMutableAttributedString(
-            string: parts.label,
+            string: label,
             attributes: [
                 .font: MenuFont.label,
                 .foregroundColor: seen ? NSColor.secondaryLabelColor : NSColor.labelColor,
             ]
         )
         text.append(NSAttributedString(
-            string: "  \(parts.detail)\t\(parts.age)",
+            string: "\(lead)\(title)\t\(age)",
             attributes: [
                 .font: MenuFont.detail,
                 .foregroundColor: NSColor.secondaryLabelColor,
@@ -164,8 +193,12 @@ final class MenuBuilder {
         menuItem.target = target
         menuItem.representedObject = entry
         menuItem.image = Icons.forItem(entry, seen: seen)
+        // Kirpilan basligin tam hali fare uzerine gelince gorunur.
+        menuItem.toolTip = "\(entry.title)\n@\(entry.authorLogin)"
         return menuItem
     }
+
+    // MARK: - Diger satirlar
 
     private func profileItem(_ viewer: Viewer) -> NSMenuItem {
         let text = NSMutableAttributedString(
@@ -180,21 +213,23 @@ final class MenuBuilder {
         let item = NSMenuItem(title: "", action: #selector(AppDelegate.openProfile), keyEquivalent: "")
         item.attributedTitle = text
         item.target = target
-        item.image = Avatar.cached(size: Icons.size)
+        item.image = Avatar.cached(size: Icons.size) ?? Icons.blank
         return item
     }
 
     private func rateLimitItem(_ limit: RateLimit, now: Date) -> NSMenuItem {
-        // age(of:now:) parametreleri ters verilerek "sifirlanmaya kalan sure"
-        // elde ediliyor.
-        let resets = Formatting.age(of: now, now: limit.resetAt)
+        // Sifirlanma ani gecmisse "0m" anlamsiz; bir sonraki yenilemede yeni
+        // pencere gelmis olacak.
+        let resets = limit.resetAt <= now
+            ? "resets <1m"
+            : "resets \(Formatting.age(of: now, now: limit.resetAt))"
 
         let text = NSMutableAttributedString(
             string: "Rate Limit",
             attributes: [.font: MenuFont.label, .foregroundColor: NSColor.labelColor]
         )
         text.append(NSAttributedString(
-            string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))\tresets \(resets)",
+            string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))\t\(resets)",
             attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
         ))
         text.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
@@ -232,42 +267,38 @@ final class MenuBuilder {
         return item
     }
 
-    private func action(_ title: String, _ selector: Selector, key: String) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
+    private func action(_ title: String, _ selector: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
         item.target = target
         return item
     }
 }
 
-/// Menu yazi tipleri.
+/// Menu yazi tipleri ve satir olculeri.
 ///
 /// attributedTitle kullanildiginda AppKit menunun kendi yazi tipini
-/// uygulamiyor, varsayilana dusuyor ve satirlar sistem menulerinden iri
-/// duruyor. menuFont(ofSize: 0) "sistemin standart menu boyutu" demek.
-/// Depolanan degil hesaplanan ozellikler: NSFont bir sinif ve Sendable degil,
-/// Swift 6 statik olarak tutulmasina izin vermiyor. NSFont uretimi AppKit
-/// tarafindan onbelleklendigi icin her cagride yeniden istemek bedava.
+/// uygulamiyor, varsayilana dusuyor. menuFont(ofSize: 0) "sistemin standart
+/// menu boyutu" demek. Depolanan degil hesaplanan ozellikler: NSFont bir
+/// sinif ve Sendable degil, Swift 6 statik tutulmasina izin vermiyor.
 enum MenuFont {
     /// Satirlarin bittigi nokta, punto cinsinden. Yas bu konumda saga yasli
-    /// bir sekme duragiyla hizalaniyor, dolayisiyla butun satirlar tam olarak
-    /// burada bitiyor: sag kenar tirtikli olmuyor ve baslikla yas arasindaki
-    /// degisken bosluk kayboluyor.
+    /// sekme duragiyla hizalaniyor; baslik da ayni genislige gore olculup
+    /// kirpildigi icin satirlar iki kenara birden yasli.
     ///
-    /// Menu genisligini ayarlamak icin degistirilecek sayi budur.
-    static let rowWidth: CGFloat = 300
+    /// Menu genisligini ayarlamak icin degistirilecek TEK sayi budur.
+    static let rowWidth: CGFloat = 280
 
-    /// Satiri saga yaslayan paragraf stili.
+    /// Satirin sag kenarini sabitleyen paragraf stili.
     static var rowStyle: NSParagraphStyle {
         let style = NSMutableParagraphStyle()
         style.tabStops = [NSTextTab(textAlignment: .right, location: rowWidth, options: [:])]
-        style.lineBreakMode = .byTruncatingTail
+        style.lineBreakMode = .byTruncatingTail   // olcum sasarsa son emniyet
         return style
     }
 
     static var label: NSFont { .menuFont(ofSize: 0) }
 
-    /// Ikincil metin bir punto kucuk: hem hiyerarsiyi guclendiriyor hem
-    /// satirin en uzun parcasi oldugu icin genisligi gozle gorulur dusuruyor.
+    /// Ikincil metin bir punto kucuk: hiyerarsiyi guclendiriyor.
     static var detail: NSFont { .menuFont(ofSize: NSFont.systemFontSize - 1) }
 }
 
@@ -286,34 +317,49 @@ enum Icons {
     }
 
     static func symbol(_ name: String, color: NSColor) -> NSImage? {
-        tinted(name, color)
+        tinted([name], color)
     }
 
     static func forItem(_ item: Item, seen: Bool) -> NSImage? {
-        let symbol = item.kind == .pullRequest
-            ? "arrow.trianglehead.pull"
-            : "smallcircle.filled.circle"
+        // trianglehead SF Symbols 6 (macOS 15); Sonoma icin eski adlar yedek.
+        let symbols = item.kind == .pullRequest
+            ? ["arrow.trianglehead.pull", "arrow.triangle.pull", "arrow.triangle.branch"]
+            : ["smallcircle.filled.circle", "circle.circle"]
         let color: NSColor = item.isDraft
             ? .tertiaryLabelColor
             : (seen ? .secondaryLabelColor : .systemGreen)
-        return tinted(symbol, color)
+        return tinted(symbols, color)
+    }
+
+    static func statusBar() -> NSImage? {
+        tinted(["arrow.trianglehead.pull", "arrow.triangle.pull", "arrow.triangle.branch"],
+               .labelColor)
     }
 
     static func folder(unseen: Bool) -> NSImage? {
-        tinted("folder", unseen ? .systemGreen : .secondaryLabelColor)
+        tinted(["folder"], unseen ? .systemGreen : .secondaryLabelColor)
     }
 
     static func gauge(fraction: Double) -> NSImage? {
         let color: NSColor = fraction < 0.10 ? .systemRed
                            : (fraction < 0.25 ? .systemOrange : .secondaryLabelColor)
-        return tinted("gauge.with.needle", color)
+        return tinted(["gauge.with.needle", "gauge"], color)
     }
 
-    private static func tinted(_ symbol: String, _ color: NSColor) -> NSImage? {
-        let configuration = NSImage.SymbolConfiguration(paletteColors: [color])
-        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
-        image?.size = NSSize(width: size, height: size)
-        return image
+    /// Listedeki ilk mevcut sembolu boyar. Tek ad yerine liste almasinin
+    /// sebebi macOS surum farklari: hedefimiz macOS 14 ama bazi semboller
+    /// (arrow.trianglehead.*) macOS 15 ile geldi. Ad bulunamazsa NSImage nil
+    /// doner ve satir SESSIZCE ikonsuz kalirdi.
+    private static func tinted(_ names: [String], _ color: NSColor) -> NSImage? {
+        for name in names {
+            guard let base = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {
+                continue
+            }
+            let configuration = NSImage.SymbolConfiguration(paletteColors: [color])
+            let image = base.withSymbolConfiguration(configuration)
+            image?.size = NSSize(width: size, height: size)
+            return image
+        }
+        return nil
     }
 }
