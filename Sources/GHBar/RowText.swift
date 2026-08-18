@@ -2,7 +2,9 @@ import Foundation
 
 enum RowText {
 
-    static let titleLimit = 48
+    /// Menu genisligini en uzun satir belirliyor; NSMenu'nun ayri bir genislik
+    /// ayari yok. Bu sayiyi degistirmek menuyu darlastirip genisletiyor.
+    static let titleLimit = 32
 
     /// Tek hesap izleniyorsa her satirda kendi adini tekrar gormek gereksiz
     /// gurultu; sahip adi yalnizca birden fazla hesap izlenirken yazilir.

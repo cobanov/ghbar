@@ -25,7 +25,7 @@ struct RowTextTests {
     @Test("baslik kirpilir") func truncatesTitle() {
         let long = String(repeating: "word ", count: 40)
         let parts = RowText.parts(for: makeItem(title: long), showOwner: false, now: now)
-        #expect(parts.detail.count <= 49)
+        #expect(parts.detail.count <= 33)
         #expect(parts.detail.hasSuffix("…"))
     }
 

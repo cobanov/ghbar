@@ -118,7 +118,7 @@ final class MenuBuilder {
             attributes: [.foregroundColor: seen ? NSColor.secondaryLabelColor : NSColor.labelColor]
         )
         text.append(NSAttributedString(
-            string: "  \(parts.detail)   \(parts.age)",
+            string: "  \(parts.detail)  \(parts.age)",
             attributes: [.foregroundColor: NSColor.secondaryLabelColor]
         ))
 
@@ -160,7 +160,7 @@ final class MenuBuilder {
             attributes: [.foregroundColor: NSColor.labelColor]
         )
         text.append(NSAttributedString(
-            string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))   resets \(resets)",
+            string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))  resets \(resets)",
             attributes: [.foregroundColor: NSColor.secondaryLabelColor]
         ))
 
