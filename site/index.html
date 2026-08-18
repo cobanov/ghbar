@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GHBar — Pull requests and issues in your macOS menu bar</title>
+<meta name="description" content="GHBar keeps the pull requests and issues people open on your repositories in the macOS menu bar. Free, open source, one API call per refresh." />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="GHBar — Pull requests and issues in your menu bar" />
+<meta property="og:description" content="The contributions people send you, without the rest of the notification inbox." />
+<meta property="og:url" content="https://ghbar.cobanov.dev/" />
+<meta property="og:image" content="https://ghbar.cobanov.dev/assets/ghbar-icon.png" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="icon" type="image/png" href="/assets/ghbar-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="nav-wrap">
+  <nav class="nav glass">
+    <a class="brand" href="/">
+      <img src="/assets/ghbar-icon.png" alt="" width="28" height="28" />
+      <span>GHBar</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/cobanov/ghbar">GitHub</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+
+<!-- ─────────────────────────── hero ─────────────────────────── -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">Free · Open source · macOS 14+</p>
+      <h1>Pull requests and issues in your menu bar.</h1>
+      <p class="lede">
+        The contributions people send to <em>your</em> repositories — without the
+        comment threads, the CI results and the rest of the notification inbox.
+      </p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/cobanov/ghbar/releases/latest">
+          <svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 1a.75.75 0 0 1 .75.75v6.69l1.72-1.72a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 1.06-1.06l1.72 1.72V1.75A.75.75 0 0 1 8 1ZM2.75 12a.75.75 0 0 1 .75.75v.75h9v-.75a.75.75 0 0 1 1.5 0v1.5a.75.75 0 0 1-.75.75h-10.5a.75.75 0 0 1-.75-.75v-1.5a.75.75 0 0 1 .75-.75Z"/></svg>
+          Download for macOS
+        </a>
+        <button class="btn btn-ghost copy" data-copy="brew install --cask cobanov/tap/ghbar">
+          <code>brew install --cask cobanov/tap/ghbar</code>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+
+      <p class="fineprint">
+        Signed and notarized by Apple — opens without a Gatekeeper warning.
+      </p>
+    </div>
+
+    <!--
+      Urun gorseli: ekran goruntusu degil, menunun HTML/CSS ile yeniden
+      cizimi. Her cozunurlukte net kaliyor ve uygulama degistiginde
+      goruntuyu yeniden cekmek gerekmiyor.
+    -->
+    <div class="hero-shot" aria-label="GHBar menu preview">
+      <div class="menubar glass">
+        <span class="mb-dot"></span>
+        <span class="mb-item">100%</span>
+        <span class="mb-item mb-active">
+          <svg class="pr" viewBox="0 0 16 16" width="13" height="13"><use href="#pr-glyph"/></svg> 3
+        </span>
+        <span class="mb-item">21:04</span>
+      </div>
+
+      <div class="menu glass" role="presentation">
+        <div class="row row-profile">
+          <img src="/assets/ghbar-icon.png" alt="" width="20" height="20" class="avatar" />
+          <span class="label">Mert Cobanov</span><span class="value">@cobanov</span>
+        </div>
+        <div class="sep"></div>
+
+        <div class="section-head">Pull Requests</div>
+        <div class="row">
+          <svg class="ico new" viewBox="0 0 16 16"><use href="#pr-glyph"/></svg>
+          <span class="label">herdrchat #55</span>
+          <span class="value">Let the last row scroll clear…</span><span class="age">17h</span>
+        </div>
+        <div class="row">
+          <svg class="ico new" viewBox="0 0 16 16"><use href="#pr-glyph"/></svg>
+          <span class="label">prprinter #7</span>
+          <span class="value">Add B1 label templates</span><span class="age">2d</span>
+        </div>
+        <div class="row seen">
+          <svg class="ico" viewBox="0 0 16 16"><use href="#pr-glyph"/></svg>
+          <span class="label">awesome-diffusion #1</span>
+          <span class="value">Add prompt-to-asset</span><span class="age">3mo</span>
+        </div>
+        <div class="row group">
+          <svg class="ico folder" viewBox="0 0 16 16"><use href="#folder-glyph"/></svg>
+          <span class="label">team-cobanov — 50 pull requests</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="sep"></div>
+
+        <div class="section-head">Issues</div>
+        <div class="row">
+          <svg class="ico new issue" viewBox="0 0 16 16"><use href="#issue-glyph"/></svg>
+          <span class="label">bucketmark #12</span>
+          <span class="value">MCP endpoint returns 421…</span><span class="age">2d</span>
+        </div>
+        <div class="row group">
+          <svg class="ico folder" viewBox="0 0 16 16"><use href="#folder-glyph"/></svg>
+          <span class="label">paul-graham-turkce — 18 issues</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="sep"></div>
+
+        <div class="section-head">API</div>
+        <div class="row quiet">
+          <svg class="ico gauge" viewBox="0 0 16 16"><use href="#gauge-glyph"/></svg>
+          <span class="label">Rate Limit</span>
+          <span class="value">4,911 / 5,000</span><span class="age">resets 58m</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────── features ────────────────────────── -->
+<section id="features" class="container section">
+  <h2>Only the part that needs you</h2>
+  <p class="section-lede">
+    Four decisions that keep the list short enough to actually read.
+  </p>
+
+  <div class="cards">
+    <article class="card glass">
+      <h3>Other people's work only</h3>
+      <p>
+        Pull requests and issues <strong>other people</strong> opened on your
+        repositories, plus PRs waiting on your review. Your own drafts and
+        threads you merely subscribed to never appear.
+      </p>
+    </article>
+
+    <article class="card glass">
+      <h3>A noisy repo folds away</h3>
+      <p>
+        More than three open items in one repository and they collapse into a
+        single row with a submenu. The instinct otherwise is to mute the repo
+        entirely — and then miss the one real contribution it gets.
+      </p>
+    </article>
+
+    <article class="card glass">
+      <h3>Unread is a colour, not a badge</h3>
+      <p>
+        New items are green, seen ones fade to grey. Clicking a row opens it and
+        marks it seen in the same motion — there is nothing extra to dismiss.
+      </p>
+    </article>
+
+    <article class="card glass">
+      <h3>It tells you when it fails</h3>
+      <p>
+        No connection, expired session, rate limit — each becomes a visible row.
+        An empty list would be the worst outcome: you'd read "couldn't check" as
+        "nothing waiting".
+      </p>
+    </article>
+  </div>
+</section>
+
+<!-- ────────────────────────── how it works ────────────────────────── -->
+<section id="how" class="section-alt">
+  <div class="container section">
+    <h2>One request, one API point</h2>
+    <p class="section-lede">
+      A single GraphQL query per refresh covers three searches, your profile and
+      the quota status. At the default five-minute interval that is 12 points an
+      hour — <strong>0.24%</strong> of GitHub's 5,000.
+    </p>
+
+    <pre class="code glass"><code>is:pr    is:open user:@me -author:@me     <span class="c">→ Pull Requests</span>
+is:issue is:open user:@me -author:@me     <span class="c">→ Issues</span>
+is:pr    is:open review-requested:@me     <span class="c">→ Review Requested</span></code></pre>
+
+    <div class="cards cards-3">
+      <article class="card glass">
+        <h3>No account to create</h3>
+        <p>
+          GHBar reads your token from <code>gh auth token</code>. There is no
+          sign-up, no password to hand over and no server in the middle.
+        </p>
+      </article>
+      <article class="card glass">
+        <h3>Nothing leaves your Mac</h3>
+        <p>
+          Filtering, grouping and the record of what you've seen all happen
+          locally. No telemetry, no analytics, no network listener of its own.
+        </p>
+      </article>
+      <article class="card glass">
+        <h3>Open source</h3>
+        <p>
+          MIT licensed. Read the query it sends, the filter it applies and the
+          file it writes — all of it is in the repository.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────── install ────────────────────────── -->
+<section id="install" class="container section">
+  <h2>Install</h2>
+
+  <div class="install-grid">
+    <div class="card glass">
+      <h3>Homebrew</h3>
+      <pre class="code inline"><code>brew install --cask cobanov/tap/ghbar</code></pre>
+      <button class="btn btn-ghost small copy" data-copy="brew install --cask cobanov/tap/ghbar">
+        <span class="copy-label">Copy command</span>
+      </button>
+    </div>
+
+    <div class="card glass">
+      <h3>Direct download</h3>
+      <p>Unzip and drag <strong>GHBar.app</strong> into Applications.</p>
+      <a class="btn btn-primary small" href="https://github.com/cobanov/ghbar/releases/latest">
+        Latest release
+      </a>
+    </div>
+  </div>
+
+  <div class="requirements card glass">
+    <h3>Requirements</h3>
+    <ul>
+      <li><strong>macOS 14</strong> (Sonoma) or newer</li>
+      <li>
+        <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>), signed in —
+        <code>brew install gh &amp;&amp; gh auth login</code>
+      </li>
+    </ul>
+    <p class="fineprint">
+      GHBar borrows the token <code>gh</code> already holds, so there is no second
+      sign-in. Built-in sign-in without <code>gh</code> is coming in a later release.
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/ghbar-icon.png" alt="" width="24" height="24" />
+      <span>GHBar</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/cobanov/ghbar">GitHub</a>
+      <a href="https://github.com/cobanov/ghbar/releases">Releases</a>
+      <a href="https://github.com/cobanov/ghbar/blob/main/LICENSE">MIT License</a>
+      <a href="https://github.com/cobanov/ghbar/issues">Report an issue</a>
+    </div>
+    <p class="footer-note">Built by <a href="https://github.com/cobanov">Mert Cobanov</a></p>
+  </div>
+</footer>
+
+<!-- SVG sembol tanimlari: her ikon tek yerde, sayfada tekrar tekrar kullaniliyor -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="pr-glyph" viewBox="0 0 16 16">
+    <path fill="currentColor" d="M4.5 3.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5ZM2 4.5a2.5 2.5 0 1 1 3.13 2.42v2.16a2.5 2.5 0 1 1-1.25 0V6.92A2.5 2.5 0 0 1 2 4.5Zm2.5 6.75a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm7-8a2.5 2.5 0 0 1 .62 4.92v1.9a3.25 3.25 0 0 1-3.25 3.25H8.3l.72.72a.63.63 0 1 1-.89.88l-1.79-1.78a.63.63 0 0 1 0-.89l1.79-1.78a.63.63 0 1 1 .89.88l-.72.72h.57a2 2 0 0 0 2-2v-1.9a2.5 2.5 0 0 1 .63-4.92Zm0 1.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z"/>
+  </symbol>
+  <symbol id="issue-glyph" viewBox="0 0 16 16">
+    <path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM.25 8a7.75 7.75 0 1 1 15.5 0 7.75 7.75 0 0 1-15.5 0ZM8 5.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/>
+  </symbol>
+  <symbol id="folder-glyph" viewBox="0 0 16 16">
+    <path fill="currentColor" d="M1.75 2.5h4.06c.4 0 .78.16 1.06.44l.94.94h6.44c.97 0 1.75.78 1.75 1.75v6.62c0 .97-.78 1.75-1.75 1.75H1.75C.78 14 0 13.22 0 12.25V4.25C0 3.28.78 2.5 1.75 2.5Z"/>
+  </symbol>
+  <symbol id="gauge-glyph" viewBox="0 0 16 16">
+    <path fill="currentColor" d="M8 2a6 6 0 0 0-5.2 9h10.4A6 6 0 0 0 8 2Zm0-1.25A7.25 7.25 0 0 1 14.6 11.4a1.1 1.1 0 0 1-1 .6H2.4a1.1 1.1 0 0 1-1-.6A7.25 7.25 0 0 1 8 .75Zm3.1 3.6a.63.63 0 0 1 .1.88L8.9 8.16a1.25 1.25 0 1 1-.98-.78l2.3-2.94a.63.63 0 0 1 .88-.1Z"/>
+  </symbol>
+</svg>
+
+<script>
+  // "Copy" dugmeleri: panoya yazar, iki saniye geri bildirim gosterir.
+  document.querySelectorAll('.copy').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var text = button.dataset.copy;
+      navigator.clipboard.writeText(text).then(function () {
+        var label = button.querySelector('.copy-label');
+        if (!label) return;
+        var original = label.textContent;
+        label.textContent = 'Copied';
+        button.classList.add('copied');
+        setTimeout(function () {
+          label.textContent = original;
+          button.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
