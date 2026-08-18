@@ -22,11 +22,29 @@ struct RowTextTests {
         #expect(parts.label == "acme/backend #55")
     }
 
-    @Test("baslik kirpilir") func truncatesTitle() {
+    @Test("satirin toplam genisligi butceyi asmaz") func rowBudget() {
         let long = String(repeating: "word ", count: 40)
-        let parts = RowText.parts(for: makeItem(title: long), showOwner: false, now: now)
-        #expect(parts.detail.count <= 33)
-        #expect(parts.detail.hasSuffix("…"))
+        for repo in ["a/b", "alice/webapp", "cobanov/paul-graham-turkce"] {
+            let parts = RowText.parts(for: makeItem(repo: repo, title: long), showOwner: false, now: now)
+            #expect(parts.label.count + parts.detail.count <= RowText.rowBudget + 1)  // +1 elipsis
+            #expect(parts.detail.hasSuffix("…"))
+        }
+    }
+
+    @Test("uzun repo adi basligi kisaltir, kisa ad uzun birakir") func budgetShifts() {
+        let long = String(repeating: "word ", count: 40)
+        let short = RowText.parts(for: makeItem(repo: "a/cli", title: long), showOwner: false, now: now)
+        let wide  = RowText.parts(for: makeItem(repo: "a/paul-graham-turkce", title: long), showOwner: false, now: now)
+        #expect(short.detail.count > wide.detail.count)
+    }
+
+    @Test("cok uzun repo adinda bile baslik asgari uzunlugu korur") func minimumTitle() {
+        let long = String(repeating: "word ", count: 40)
+        let parts = RowText.parts(
+            for: makeItem(repo: "org/an-extremely-long-repository-name-here", title: long),
+            showOwner: true, now: now
+        )
+        #expect(parts.detail.count >= RowText.minimumTitle - 4)
     }
 
     @Test("yas hesaplanir") func age() {

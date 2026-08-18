@@ -2,18 +2,32 @@ import Foundation
 
 enum RowText {
 
-    /// Menu genisligini en uzun satir belirliyor; NSMenu'nun ayri bir genislik
-    /// ayari yok. Bu sayiyi degistirmek menuyu darlastirip genisletiyor.
-    static let titleLimit = 32
+    /// Bir satirda etiket + baslik icin toplam karakter butcesi.
+    ///
+    /// Menu genisligini en uzun satir belirliyor ve NSMenu'nun ayri bir
+    /// genislik ayari yok. Basliga sabit bir sinir koymak yetmiyor cunku
+    /// satirin obur yarisi olan repo adi degisken: "paul-graham-turkce #96"
+    /// tek basina 22 karakter. Butceyi toplama koyunca uzun repo adli
+    /// satirda baslik kendiliginde kisaliyor ve butun satirlar ayni
+    /// genislikte oluyor.
+    ///
+    /// Menuyu darlastirmak/genisletmek icin degistirilecek tek sayi budur.
+    static let rowBudget = 46
+
+    /// Baslik bundan kisaya dusurulmez; asagisinda hicbir sey anlatmiyor.
+    static let minimumTitle = 16
 
     /// Tek hesap izleniyorsa her satirda kendi adini tekrar gormek gereksiz
     /// gurultu; sahip adi yalnizca birden fazla hesap izlenirken yazilir.
     static func parts(for item: Item, showOwner: Bool, now: Date)
         -> (label: String, detail: String, age: String)
     {
-        (
-            label: "\(showOwner ? item.repository : item.repositoryName) #\(item.number)",
-            detail: Formatting.truncate(item.title, limit: titleLimit),
+        let label = "\(showOwner ? item.repository : item.repositoryName) #\(item.number)"
+        let allowance = max(minimumTitle, rowBudget - label.count)
+
+        return (
+            label: label,
+            detail: Formatting.truncate(item.title, limit: allowance),
             age: Formatting.age(of: item.createdAt, now: now)
         )
     }
