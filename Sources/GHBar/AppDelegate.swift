@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var menuBuilder: MenuBuilder!
     private let seenStore = SeenStore(url: SeenStore.defaultURL)
+    private let notifier = Notifier()
     private let settings = Settings.default
 
     private var sections: [Section] = []
@@ -28,6 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
 
         menuBuilder = MenuBuilder(target: self)
+        notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
+        notifier.start()
         rebuildMenu()
 
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
@@ -73,9 +76,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let built = Filtering.sections(from: snapshot, settings: settings)
                 let all = built.flatMap(\.items)
 
-                seenStore.bootstrap(with: all, at: Date())
+                // Sira onemli: ilk calistirmada bootstrap her seyi gorulmus
+                // sayar, dolayisiyla newItems bos doner ve bildirim yagmaz.
+                let wasFirstRun = seenStore.bootstrap(with: all, at: Date())
+                let fresh = wasFirstRun ? [] : seenStore.newItems(among: all)
                 seenStore.prune(keeping: Set(all.map(\.url)))
                 try? seenStore.save()
+                notifier.notify(about: fresh)
 
                 viewer = snapshot.viewer
                 rateLimit = snapshot.rateLimit
@@ -113,14 +120,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Menu eylemleri
 
     @objc func openItem(_ sender: NSMenuItem) {
-        guard let item = sender.representedObject as? Item,
-              let url = URL(string: item.url) else { return }
-
+        guard let item = sender.representedObject as? Item else { return }
         // Tiklamak hem aciyor hem gorulmus isaretliyor; ayrica isaretlemeye
         // gerek kalmiyor.
-        seenStore.markSeen([item.url], at: Date())
-        try? seenStore.save()
+        open(item.url, markSeen: true)
+    }
+
+    /// Menuden ve bildirimden ortak kullanilan acma yolu.
+    private func open(_ address: String, markSeen: Bool) {
+        guard let url = URL(string: address) else { return }
+        if markSeen {
+            seenStore.markSeen([address], at: Date())
+            try? seenStore.save()
+        }
         NSWorkspace.shared.open(url)
+        rebuildMenu()
+    }
+
+    @objc func toggleLaunchAtLogin() {
+        LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
         rebuildMenu()
     }
 

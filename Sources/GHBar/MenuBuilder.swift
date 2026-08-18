@@ -58,6 +58,15 @@ final class MenuBuilder {
 
         menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: "o"))
         menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: "r"))
+
+        if LaunchAtLogin.isAvailable {
+            let launch = action("Launch at Login", #selector(AppDelegate.toggleLaunchAtLogin), key: "")
+            launch.state = LaunchAtLogin.isEnabled ? .on : .off
+            menu.addItem(launch)
+        }
+
+        menu.addItem(.separator())
+        menu.addItem(disabled("GHBar \(AppVersion.current)"))
         menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit), key: "q"))
         return menu
     }
