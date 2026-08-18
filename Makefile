@@ -28,7 +28,7 @@ SIGN_ID     := Developer ID Application: AHMET MERT COBANOGLU (6U58AKY6F8)
 # xcrun notarytool store-credentials ile kaydedilen profil adi.
 NOTARY_PROFILE := ghbar
 
-.PHONY: all build test icon bundle sign notarize zip release install clean run
+.PHONY: all build test icon bundle sign notarize zip release install clean run publish tap
 
 all: build
 
@@ -133,9 +133,24 @@ publish:
 	  --title "GHBar $(VERSION)" \
 	  --notes-file docs/release-notes/v$(VERSION).md \
 	  --repo cobanov/ghbar
-	@echo
-	@echo "cask icin sha256:"
-	@shasum -a 256 $(ZIP) | cut -d' ' -f1
+	$(MAKE) tap
+
+# Homebrew cask'ini yeni surum + sha256 ile tap'e gonderir. Ayri clone yok:
+# gh api ile tek dosya PUT ediliyor.
+tap:
+	@SHA=$$(shasum -a 256 $(ZIP) | cut -d' ' -f1); \
+	sed -e "s/{{VERSION}}/$(VERSION)/g" -e "s/{{SHA256}}/$$SHA/g" \
+	  Packaging/ghbar.rb.template > $(BUILD_DIR)/ghbar.rb; \
+	B64=$$(base64 -i $(BUILD_DIR)/ghbar.rb); \
+	EXISTING=$$(gh api repos/cobanov/homebrew-tap/contents/Casks/ghbar.rb --jq .sha 2>/dev/null || true); \
+	if [ -n "$$EXISTING" ]; then \
+	  gh api -X PUT repos/cobanov/homebrew-tap/contents/Casks/ghbar.rb \
+	    -f message="ghbar $(VERSION)" -f content="$$B64" -f sha="$$EXISTING" > /dev/null; \
+	else \
+	  gh api -X PUT repos/cobanov/homebrew-tap/contents/Casks/ghbar.rb \
+	    -f message="ghbar $(VERSION)" -f content="$$B64" > /dev/null; \
+	fi; \
+	echo "tap guncellendi: brew install hazir"
 
 # --- Kurulum ------------------------------------------------------------
 

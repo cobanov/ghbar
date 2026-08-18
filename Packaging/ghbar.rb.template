@@ -1,0 +1,18 @@
+cask "ghbar" do
+  version "{{VERSION}}"
+  sha256 "{{SHA256}}"
+
+  url "https://github.com/cobanov/ghbar/releases/download/v#{version}/GHBar-#{version}-macos.zip"
+  name "GHBar"
+  desc "Pull requests and issues from your repositories, in the menu bar"
+  homepage "https://ghbar.cobanov.dev"
+
+  depends_on macos: ">= :sonoma"
+
+  app "GHBar.app"
+
+  zap trash: [
+    "~/Library/Application Support/GHBar",
+    "~/Library/Preferences/run.cobanov.ghbar.plist",
+  ]
+end
