@@ -12,7 +12,10 @@ enum RowText {
     /// genislikte oluyor.
     ///
     /// Menuyu darlastirmak/genisletmek icin degistirilecek tek sayi budur.
-    static let rowBudget = 34
+    /// Sekme duragi (MenuFont.rowWidth) sag kenari zaten sabitliyor, yani uzun
+    /// baslik menuyu genisletmiyor — sadece bosluğu dolduruyor. Bu yuzden butce
+    /// darlik icin degil, tasmayi onlemek icin var.
+    static let rowBudget = 42
 
     /// Baslik bundan kisaya dusurulmez; asagisinda hicbir sey anlatmiyor.
     static let minimumTitle = 12
@@ -20,7 +23,7 @@ enum RowText {
     /// Repo adi + numara icin ust sinir. Olmadiginda tek bir uzun repo adi
     /// ("pydantic-agent-template #2" = 26 karakter) butun butceyi yiyor ve
     /// basliga hicbir sey kalmiyor.
-    static let labelCap = 20
+    static let labelCap = 22
 
     /// Tek hesap izleniyorsa her satirda kendi adini tekrar gormek gereksiz
     /// gurultu; sahip adi yalnizca birden fazla hesap izlenirken yazilir.

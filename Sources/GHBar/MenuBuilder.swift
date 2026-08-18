@@ -101,16 +101,24 @@ final class MenuBuilder {
 
         case .group(let repository, let items):
             let unseen = items.contains { !input.isSeen($0.url) }
-            let menuItem = NSMenuItem(
-                title: RowText.groupLabel(
-                    repository: repository,
-                    count: items.count,
-                    kind: items[0].kind,
-                    showOwner: input.showOwner
-                ),
-                action: nil,
-                keyEquivalent: ""
+            let menuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+            let name = input.showOwner
+                ? repository
+                : (repository.split(separator: "/").last.map(String.init) ?? repository)
+            let groupText = NSMutableAttributedString(
+                string: name,
+                attributes: [
+                    .font: MenuFont.label,
+                    .foregroundColor: unseen ? NSColor.labelColor : NSColor.secondaryLabelColor,
+                ]
             )
+            groupText.append(NSAttributedString(
+                string: "\t\(items.count)",
+                attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
+            ))
+            groupText.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
+                                   range: NSRange(location: 0, length: groupText.length))
+            menuItem.attributedTitle = groupText
             menuItem.image = Icons.folder(unseen: unseen)
             let submenu = NSMenu()
             for entry in items { submenu.addItem(itemRow(entry, input: input)) }
@@ -133,12 +141,14 @@ final class MenuBuilder {
             ]
         )
         text.append(NSAttributedString(
-            string: "  \(parts.detail)  \(parts.age)",
+            string: "  \(parts.detail)\t\(parts.age)",
             attributes: [
                 .font: MenuFont.detail,
                 .foregroundColor: NSColor.secondaryLabelColor,
             ]
         ))
+        text.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
+                          range: NSRange(location: 0, length: text.length))
 
         let menuItem = NSMenuItem(
             title: "",
@@ -165,6 +175,7 @@ final class MenuBuilder {
         let item = NSMenuItem(title: "", action: #selector(AppDelegate.openProfile), keyEquivalent: "")
         item.attributedTitle = text
         item.target = target
+        item.image = Avatar.cached(size: 18)
         return item
     }
 
@@ -178,9 +189,11 @@ final class MenuBuilder {
             attributes: [.font: MenuFont.label, .foregroundColor: NSColor.labelColor]
         )
         text.append(NSAttributedString(
-            string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))  resets \(resets)",
+            string: "  \(Formatting.grouped(limit.remaining)) / \(Formatting.grouped(limit.limit))\tresets \(resets)",
             attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
         ))
+        text.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
+                          range: NSRange(location: 0, length: text.length))
 
         let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         item.attributedTitle = text
@@ -230,6 +243,22 @@ final class MenuBuilder {
 /// Swift 6 statik olarak tutulmasina izin vermiyor. NSFont uretimi AppKit
 /// tarafindan onbelleklendigi icin her cagride yeniden istemek bedava.
 enum MenuFont {
+    /// Satirlarin bittigi nokta, punto cinsinden. Yas bu konumda saga yasli
+    /// bir sekme duragiyla hizalaniyor, dolayisiyla butun satirlar tam olarak
+    /// burada bitiyor: sag kenar tirtikli olmuyor ve baslikla yas arasindaki
+    /// degisken bosluk kayboluyor.
+    ///
+    /// Menu genisligini ayarlamak icin degistirilecek sayi budur.
+    static let rowWidth: CGFloat = 300
+
+    /// Satiri saga yaslayan paragraf stili.
+    static var rowStyle: NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.tabStops = [NSTextTab(textAlignment: .right, location: rowWidth, options: [:])]
+        style.lineBreakMode = .byTruncatingTail
+        return style
+    }
+
     static var label: NSFont { .menuFont(ofSize: 0) }
 
     /// Ikincil metin bir punto kucuk: hem hiyerarsiyi guclendiriyor hem

@@ -85,6 +85,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 try? seenStore.save()
                 notifier.notify(about: fresh)
 
+                // Avatar bir kez inip diske yaziliyor; URL degisirse yenileniyor.
+                if await Avatar.refresh(from: snapshot.viewer.avatarURL) {
+                    NSLog("GHBar: profil fotografi indirildi")
+                }
+
                 viewer = snapshot.viewer
                 rateLimit = snapshot.rateLimit
                 sections = built
