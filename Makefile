@@ -117,6 +117,25 @@ release: test notarize
 	@echo
 	@echo "yayina hazir: $(ZIP)"
 	@shasum -a 256 $(ZIP)
+	@echo
+	@echo "sonraki adim: make publish"
+
+# --- Yayin --------------------------------------------------------------
+# Noterlenmis arsivi GitHub Release olarak yayinlar ve Homebrew cask'ini
+# yeni surum + sha256 ile gunceller.
+
+publish:
+	@test -f $(ZIP) || { echo "$(ZIP) yok — once 'make notarize' calistir"; exit 1; }
+	@echo "--- noterleme dogrulamasi ---"
+	@spctl --assess --type execute --verbose=4 $(APP_BUNDLE) 2>&1 | grep -q accepted \
+	  || { echo "HATA: paket Gatekeeper'dan gecmiyor, yayinlanmayacak"; exit 1; }
+	gh release create v$(VERSION) $(ZIP) \
+	  --title "GHBar $(VERSION)" \
+	  --notes-file docs/release-notes/v$(VERSION).md \
+	  --repo cobanov/ghbar
+	@echo
+	@echo "cask icin sha256:"
+	@shasum -a 256 $(ZIP) | cut -d' ' -f1
 
 # --- Kurulum ------------------------------------------------------------
 
