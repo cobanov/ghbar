@@ -76,9 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let built = Filtering.sections(from: snapshot, settings: settings)
                 let all = built.flatMap(\.items)
 
-                // Sira onemli: ilk calistirmada bootstrap her seyi gorulmus
-                // sayar, dolayisiyla newItems bos doner ve bildirim yagmaz.
-                let wasFirstRun = seenStore.bootstrap(with: all, at: Date())
+                // Ilk yenilemede bildirim atilmaz (kurulumun ilk saniyesinde
+                // onlarca bildirim yagardi), ama ogeler okunmamis kalir ki
+                // kullanici neyi gormedigini gorebilsin.
+                let wasFirstRun = seenStore.markFirstRunDone()
                 let fresh = wasFirstRun ? [] : seenStore.newItems(among: all)
                 seenStore.prune(keeping: Set(all.map(\.url)))
                 try? seenStore.save()

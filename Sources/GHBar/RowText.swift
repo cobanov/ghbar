@@ -12,17 +12,27 @@ enum RowText {
     /// genislikte oluyor.
     ///
     /// Menuyu darlastirmak/genisletmek icin degistirilecek tek sayi budur.
-    static let rowBudget = 38
+    static let rowBudget = 34
 
     /// Baslik bundan kisaya dusurulmez; asagisinda hicbir sey anlatmiyor.
-    static let minimumTitle = 14
+    static let minimumTitle = 12
+
+    /// Repo adi + numara icin ust sinir. Olmadiginda tek bir uzun repo adi
+    /// ("pydantic-agent-template #2" = 26 karakter) butun butceyi yiyor ve
+    /// basliga hicbir sey kalmiyor.
+    static let labelCap = 20
 
     /// Tek hesap izleniyorsa her satirda kendi adini tekrar gormek gereksiz
     /// gurultu; sahip adi yalnizca birden fazla hesap izlenirken yazilir.
     static func parts(for item: Item, showOwner: Bool, now: Date)
         -> (label: String, detail: String, age: String)
     {
-        let label = "\(showOwner ? item.repository : item.repositoryName) #\(item.number)"
+        // Numara her zaman gorunmeli — kirpma yalnizca repo adina uygulanir.
+        let name = showOwner ? item.repository : item.repositoryName
+        let suffix = " #\(item.number)"
+        let nameRoom = max(6, labelCap - suffix.count)
+        let label = (name.count > nameRoom ? "\(name.prefix(nameRoom - 1))…" : name) + suffix
+
         let allowance = max(minimumTitle, rowBudget - label.count)
 
         return (

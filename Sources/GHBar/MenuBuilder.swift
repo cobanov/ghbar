@@ -56,8 +56,11 @@ final class MenuBuilder {
             menu.addItem(.separator())
         }
 
-        menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: "o"))
-        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: "r"))
+        // Kisayol yok: NSMenu, herhangi bir ogede kisayol varsa TUM menuye
+        // sabit genislikte bir kisayol sutunu ekliyor. Sutun, metin ne kadar
+        // kisalirsa kisalsin duruyor ve sagda olu bosluk birakiyor.
+        menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: ""))
+        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: ""))
 
         if LaunchAtLogin.isAvailable {
             let launch = action("Launch at Login", #selector(AppDelegate.toggleLaunchAtLogin), key: "")
@@ -67,7 +70,7 @@ final class MenuBuilder {
 
         menu.addItem(.separator())
         menu.addItem(disabled("GHBar \(AppVersion.current)"))
-        menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit), key: "q"))
+        menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit), key: ""))
         return menu
     }
 

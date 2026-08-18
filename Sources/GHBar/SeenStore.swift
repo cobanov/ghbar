@@ -35,13 +35,16 @@ final class SeenStore {
         items.filter { !isSeen($0.url) }
     }
 
-    /// Ilk calistirmada mevcut her sey gorulmus sayilir; aksi halde uygulamayi
-    /// kuran biri ilk saniyede onlarca bildirimle karsilasirdi.
-    /// Yalnizca bir kez etki eder; ikinci cagride false doner.
+    /// Ilk yenilemeyi isaretler ve true doner; sonraki cagrilarda false.
+    ///
+    /// YALNIZCA bildirimleri susturmak icin. Ogeleri gorulmus SAYMAZ —
+    /// once oyle yapiyordu ve sonucu suydu: ilk acilista her sey gri
+    /// baslıyor, rozet sifir kaliyor ve "Mark All as Seen" degistirecek
+    /// hicbir sey bulamadigi icin bozuk gorunuyordu. Artik her sey
+    /// okunmamis basliyor, sadece bildirim yagmuru olmuyor.
     @discardableResult
-    func bootstrap(with items: [Item], at now: Date) -> Bool {
+    func markFirstRunDone() -> Bool {
         guard !state.bootstrapped else { return false }
-        markSeen(items.map(\.url), at: now)
         state.bootstrapped = true
         return true
     }

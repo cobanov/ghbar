@@ -47,6 +47,21 @@ struct RowTextTests {
         #expect(parts.detail.count >= RowText.minimumTitle - 4)
     }
 
+    @Test("uzun repo adi kirpilir ama numara hep gorunur") func labelCapped() {
+        let parts = RowText.parts(
+            for: makeItem(repo: "a/pydantic-agent-template"),
+            showOwner: false, now: now
+        )
+        #expect(parts.label.count <= RowText.labelCap)
+        #expect(parts.label.hasSuffix("#55"))
+        #expect(parts.label.contains("…"))
+    }
+
+    @Test("kisa repo adi kirpilmaz") func labelNotCapped() {
+        let parts = RowText.parts(for: makeItem(repo: "a/cli"), showOwner: false, now: now)
+        #expect(parts.label == "cli #55")
+    }
+
     @Test("yas hesaplanir") func age() {
         #expect(RowText.parts(for: makeItem(), showOwner: false, now: now).age == "1h")
     }

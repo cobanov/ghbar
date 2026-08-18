@@ -36,24 +36,26 @@ struct SeenStoreTests {
         #expect(reloaded.isSeen("https://example.com/1") == true)
     }
 
-    @Test("ilk calistirmada her sey gorulmus sayilir, yeni oge yok") func bootstrap() {
+    @Test("ilk calistirma isareti bir kez true, sonra false") func firstRunFlag() {
         let store = SeenStore(url: temporaryURL())
         #expect(store.isFirstRun == true)
-        #expect(store.bootstrap(with: [makeItem(1), makeItem(2)], at: Date()) == true)
-        #expect(store.newItems(among: [makeItem(1), makeItem(2)]).isEmpty)
+        #expect(store.markFirstRunDone() == true)
         #expect(store.isFirstRun == false)
+        #expect(store.markFirstRunDone() == false)
     }
 
-    @Test("ikinci cagride bootstrap bir sey yapmaz") func bootstrapOnce() {
+    @Test("ilk calistirma ogeleri GORULMUS SAYMAZ") func firstRunLeavesItemsUnseen() {
+        // Onceden burada her sey gorulmus isaretleniyordu; sonucu ilk acilista
+        // her seyin gri baslamasi ve "Mark All as Seen"in bozuk gorunmesiydi.
         let store = SeenStore(url: temporaryURL())
-        _ = store.bootstrap(with: [makeItem(1)], at: Date())
-        #expect(store.bootstrap(with: [makeItem(2)], at: Date()) == false)
-        #expect(store.newItems(among: [makeItem(2)]).map(\.number) == [2])
+        _ = store.markFirstRunDone()
+        #expect(store.newItems(among: [makeItem(1), makeItem(2)]).count == 2)
+        #expect(store.isSeen("https://example.com/1") == false)
     }
 
     @Test("gorulmemis ogeler dogru donuyor") func newItems() {
         let store = SeenStore(url: temporaryURL())
-        _ = store.bootstrap(with: [makeItem(1)], at: Date())
+        store.markSeen(["https://example.com/1"], at: Date())
         #expect(store.newItems(among: [makeItem(1), makeItem(2), makeItem(3)]).map(\.number) == [2, 3])
     }
 
