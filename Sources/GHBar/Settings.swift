@@ -12,8 +12,21 @@ struct Settings: Sendable, Equatable {
     var repoListIsAllowList: Bool = false
     var showBots: Bool = false
     var showDrafts: Bool = true
+    var showPullRequests: Bool = true
+    var showIssues: Bool = true
+    var showReviewRequested: Bool = true
+    var showChangesRequested: Bool = true
     var repoGroupThreshold: Int = 3
     var maxRowsPerSection: Int = 5
 
     static let `default` = Settings()
+
+    var visibleSections: Set<SectionKind> {
+        var result: Set<SectionKind> = []
+        if showPullRequests { result.insert(.pullRequests) }
+        if showIssues { result.insert(.issues) }
+        if showReviewRequested { result.insert(.reviewRequested) }
+        if showChangesRequested { result.insert(.changesRequested) }
+        return result
+    }
 }

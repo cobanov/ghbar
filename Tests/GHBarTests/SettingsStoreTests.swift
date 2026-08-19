@@ -10,7 +10,8 @@ struct SettingsStoreTests {
     private func resetAll() {
         Defaults.reset(.accounts, .organizations, .knownOrganizations,
                        .repoList, .repoListIsAllowList,
-                       .showBots, .showDrafts, .refreshMinutes,
+                       .showBots, .showDrafts, .showPullRequests, .showIssues,
+                       .showReviewRequested, .showChangesRequested, .refreshMinutes,
                        .repoGroupThreshold, .notificationsEnabled)
     }
 
@@ -28,6 +29,10 @@ struct SettingsStoreTests {
         Defaults[.repoListIsAllowList] = true
         Defaults[.showBots] = true
         Defaults[.showDrafts] = false
+        Defaults[.showPullRequests] = false
+        Defaults[.showIssues] = false
+        Defaults[.showReviewRequested] = false
+        Defaults[.showChangesRequested] = false
         Defaults[.repoGroupThreshold] = 10
 
         let s = Settings.fromDefaults()
@@ -37,6 +42,7 @@ struct SettingsStoreTests {
         #expect(s.repoListIsAllowList == true)
         #expect(s.showBots == true)
         #expect(s.showDrafts == false)
+        #expect(s.visibleSections.isEmpty)
         #expect(s.repoGroupThreshold == 10)
     }
 

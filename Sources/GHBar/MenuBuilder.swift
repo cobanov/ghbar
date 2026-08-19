@@ -20,6 +20,7 @@ final class MenuBuilder {
         var showOwner: Bool
         var knownOrganizations: [String] = []
         var selectedOrganizations: [String] = []
+        var visibleSections: Set<SectionKind>
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
         var now: Date
@@ -53,7 +54,7 @@ final class MenuBuilder {
         }
 
         if input.errors.isEmpty && !input.isSignedOut {
-            for kind in SectionKind.allCases {
+            for kind in SectionKind.allCases where input.visibleSections.contains(kind) {
                 menu.addItem(.sectionHeader(title: kind.title))
                 if let section = input.sections.first(where: { $0.kind == kind }) {
                     addRows(of: section, to: menu, input: input)

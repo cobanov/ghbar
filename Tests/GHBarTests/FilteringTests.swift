@@ -132,6 +132,22 @@ struct FilteringTests {
         #expect(Filtering.sections(from: snap, settings: .default).map(\.kind) == [.pullRequests])
     }
 
+    @Test("kullanici tarafindan gizlenen bolum ve ogeleri islenmez")
+    func dropsHiddenSections() {
+        var settings = Settings.default
+        settings.showPullRequests = false
+        settings.showIssues = false
+        let snap = snapshot(
+            prs: [makeItem(1)],
+            issues: [makeItem(2, kind: .issue)],
+            review: [makeItem(3)]
+        )
+
+        let sections = Filtering.sections(from: snap, settings: settings)
+        #expect(sections.map(\.kind) == [.reviewRequested])
+        #expect(sections.flatMap(\.items).map(\.number) == [3])
+    }
+
     @Test("kirpilma bayragi bolume tasinir") func carriesTruncation() {
         let snap = snapshot(prs: [makeItem(1)], truncated: [.pullRequests])
         #expect(Filtering.sections(from: snap, settings: .default).first?.truncated == true)

@@ -45,8 +45,24 @@ struct MenuBuilderTests {
         #expect(titles.filter { $0 == "Mark All as Seen" }.count == 1)
     }
 
+    @Test("gizlenen bolum basligi ve None satiri olusturmaz")
     @MainActor
-    private func makeMenu(sections: [MenuSection]) -> NSMenu {
+    func hiddenSection() {
+        let visible: Set<SectionKind> = [.pullRequests, .reviewRequested]
+        let titles = makeMenu(sections: [], visibleSections: visible).items.map(\.title)
+
+        #expect(titles.contains("Pull Requests"))
+        #expect(titles.contains("Review Requested"))
+        #expect(!titles.contains("Issues"))
+        #expect(!titles.contains("Changes Requested"))
+        #expect(titles.filter { $0 == "None" }.count == 2)
+    }
+
+    @MainActor
+    private func makeMenu(
+        sections: [MenuSection],
+        visibleSections: Set<SectionKind> = Set(SectionKind.allCases)
+    ) -> NSMenu {
         MenuBuilder(target: NSObject()).build(.init(
             viewer: Viewer(login: "alice", name: nil, avatarURL: "x"),
             sections: sections,
@@ -57,6 +73,7 @@ struct MenuBuilderTests {
             showOwner: false,
             knownOrganizations: [],
             selectedOrganizations: [],
+            visibleSections: visibleSections,
             maxRowsPerSection: 5,
             isSeen: { _ in false },
             now: Date()

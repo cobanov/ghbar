@@ -23,6 +23,7 @@ enum Filtering {
         ]
 
         return candidates.compactMap { kind, items in
+            guard settings.visibleSections.contains(kind) else { return nil }
             guard !items.isEmpty else { return nil }   // bos bolum hic gosterilmez
             return MenuSection(
                 kind: kind,

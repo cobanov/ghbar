@@ -50,6 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settingsObserver = Task { [weak self] in
             for await _ in Defaults.updates([.accounts, .organizations, .repoList,
                                              .repoListIsAllowList, .showBots, .showDrafts,
+                                             .showPullRequests, .showIssues,
+                                             .showReviewRequested, .showChangesRequested,
                                              .refreshMinutes, .repoGroupThreshold], initial: false) {
                 guard let self else { return }
                 self.scheduleTimer()
@@ -170,6 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showOwner: settings.accounts.count > 1 || !settings.organizations.isEmpty,
             knownOrganizations: Defaults[.knownOrganizations],
             selectedOrganizations: settings.organizations,
+            visibleSections: settings.visibleSections,
             maxRowsPerSection: Settings.default.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },
             now: Date()

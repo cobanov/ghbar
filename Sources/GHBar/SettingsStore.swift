@@ -13,6 +13,10 @@ extension Defaults.Keys {
     static let repoListIsAllowList = Key<Bool>("repoListIsAllowList", default: false)
     static let showBots = Key<Bool>("showBots", default: false)
     static let showDrafts = Key<Bool>("showDrafts", default: true)
+    static let showPullRequests = Key<Bool>("showPullRequests", default: true)
+    static let showIssues = Key<Bool>("showIssues", default: true)
+    static let showReviewRequested = Key<Bool>("showReviewRequested", default: true)
+    static let showChangesRequested = Key<Bool>("showChangesRequested", default: true)
     static let refreshMinutes = Key<Int>("refreshMinutes", default: 5)
     static let repoGroupThreshold = Key<Int>("repoGroupThreshold", default: 3)
     static let notificationsEnabled = Key<Bool>("notificationsEnabled", default: true)
@@ -40,6 +44,10 @@ extension Settings {
         settings.repoListIsAllowList = Defaults[.repoListIsAllowList]
         settings.showBots = Defaults[.showBots]
         settings.showDrafts = Defaults[.showDrafts]
+        settings.showPullRequests = Defaults[.showPullRequests]
+        settings.showIssues = Defaults[.showIssues]
+        settings.showReviewRequested = Defaults[.showReviewRequested]
+        settings.showChangesRequested = Defaults[.showChangesRequested]
         settings.repoGroupThreshold = Defaults[.repoGroupThreshold]
         return settings
     }

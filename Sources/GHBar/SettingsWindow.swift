@@ -257,10 +257,21 @@ struct GeneralPane: View {
     @Default(.notificationsEnabled) private var notificationsEnabled
     @Default(.showBots) private var showBots
     @Default(.showDrafts) private var showDrafts
+    @Default(.showPullRequests) private var showPullRequests
+    @Default(.showIssues) private var showIssues
+    @Default(.showReviewRequested) private var showReviewRequested
+    @Default(.showChangesRequested) private var showChangesRequested
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
         Form {
+            Section("Menu sections") {
+                Toggle("Pull Requests", isOn: $showPullRequests)
+                Toggle("Issues", isOn: $showIssues)
+                Toggle("Review Requested", isOn: $showReviewRequested)
+                Toggle("Changes Requested", isOn: $showChangesRequested)
+            }
+
             Picker("Refresh every", selection: $refreshMinutes) {
                 Text("1 minute").tag(1)
                 Text("5 minutes").tag(5)
