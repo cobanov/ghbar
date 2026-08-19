@@ -28,7 +28,7 @@ SIGN_ID     := Developer ID Application: AHMET MERT COBANOGLU (6U58AKY6F8)
 # xcrun notarytool store-credentials ile kaydedilen profil adi.
 NOTARY_PROFILE := ghbar
 
-.PHONY: all build test icon bundle sign notarize zip release install clean run publish tap
+.PHONY: all build test icon bundle sign notarize zip release install clean run publish tap check build-mas bundle-mas sign-mas pkg
 
 all: build
 
@@ -70,6 +70,8 @@ bundle: build $(ICNS)
 	  -c "Add :CFBundleVersion string $(VERSION)" \
 	  -c "Add :LSMinimumSystemVersion string $(MIN_MACOS)" \
 	  -c "Add :LSUIElement bool true" \
+	  -c "Add :LSApplicationCategoryType string public.app-category.developer-tools" \
+	  -c "Add :ITSAppUsesNonExemptEncryption bool false" \
 	  -c "Add :NSHumanReadableCopyright string 'Copyright © 2026 Mert Cobanov. MIT License.'" \
 	  -c "Add :NSSupportsAutomaticTermination bool false" \
 	  -c "Add :NSSupportsSuddenTermination bool false" \
@@ -164,5 +166,68 @@ install: bundle
 	@echo "kuruldu: /Applications/$(APP).app"
 	open /Applications/$(APP).app
 
+# --- MAS varyanti ----------------------------------------------------------
+# Ayri scratch path SART: -DMAS'li ve bayraksiz nesneler ayni .build'de
+# karisirsa hangi ikilinin hangi bayrakla derlendigi belirsizlesir.
+MAS_SCRATCH   := .build-mas
+MASFLAGS      := -Xswiftc -DMAS
+MAS_DIR       := $(BUILD_DIR)/mas
+MAS_BUNDLE    := $(MAS_DIR)/$(APP).app
+MAS_CONTENTS  := $(MAS_BUNDLE)/Contents
+MAS_SIGN_ID   := Apple Distribution: AHMET MERT COBANOGLU (6U58AKY6F8)
+MAS_PKG_ID    := 3rd Party Mac Developer Installer: AHMET MERT COBANOGLU (6U58AKY6F8)
+MAS_PROFILE   := Packaging/GHBar_MAS.provisionprofile
+PKG           := $(BUILD_DIR)/$(APP)-$(VERSION)-mas.pkg
+
+# Iki varyanti da derle + testler. Yayin oncesi tek dogrulama kapisi
+# (spec §20 korkuluk #2): MAS varyantini bozan degisiklik burada patlar.
+check: test build build-mas
+	@echo "check: iki varyant da derlendi, testler yesil"
+
+build-mas:
+	swift build -c release --scratch-path $(MAS_SCRATCH) $(MASFLAGS)
+
+bundle-mas: build-mas $(ICNS)
+	@rm -rf $(MAS_BUNDLE)
+	@mkdir -p $(MAS_CONTENTS)/MacOS $(MAS_CONTENTS)/Resources
+	cp $(MAS_SCRATCH)/release/$(APP) $(MAS_CONTENTS)/MacOS/$(APP)
+	cp $(ICNS) $(MAS_CONTENTS)/Resources/$(APP).icns
+	@printf '%s' 'APPL????' > $(MAS_CONTENTS)/PkgInfo
+	@/usr/libexec/PlistBuddy -c "Clear dict" \
+	  -c "Add :CFBundleName string $(APP)" \
+	  -c "Add :CFBundleDisplayName string $(APP)" \
+	  -c "Add :CFBundleIdentifier string $(BUNDLE_ID)" \
+	  -c "Add :CFBundleExecutable string $(APP)" \
+	  -c "Add :CFBundleIconFile string $(APP)" \
+	  -c "Add :CFBundlePackageType string APPL" \
+	  -c "Add :CFBundleShortVersionString string $(VERSION)" \
+	  -c "Add :CFBundleVersion string $(VERSION)" \
+	  -c "Add :LSMinimumSystemVersion string $(MIN_MACOS)" \
+	  -c "Add :LSUIElement bool true" \
+	  -c "Add :LSApplicationCategoryType string public.app-category.developer-tools" \
+	  -c "Add :ITSAppUsesNonExemptEncryption bool false" \
+	  -c "Add :NSHumanReadableCopyright string 'Copyright © 2026 Mert Cobanov.'" \
+	  $(MAS_CONTENTS)/Info.plist >/dev/null
+	@test -f $(MAS_PROFILE) \
+	  && cp $(MAS_PROFILE) $(MAS_CONTENTS)/embedded.provisionprofile \
+	  || echo "UYARI: $(MAS_PROFILE) yok — App Store yuklemesi provisioning profile ister"
+	@echo "MAS paketi: $(MAS_BUNDLE)"
+
+sign-mas: bundle-mas
+	codesign --force --timestamp \
+	  --entitlements Packaging/GHBar-MAS.entitlements \
+	  --sign "$(MAS_SIGN_ID)" $(MAS_CONTENTS)/MacOS/$(APP)
+	codesign --force --timestamp \
+	  --entitlements Packaging/GHBar-MAS.entitlements \
+	  --sign "$(MAS_SIGN_ID)" $(MAS_BUNDLE)
+	codesign --verify --deep --strict $(MAS_BUNDLE)
+
+# App Store'a gidecek .pkg. Yukleme Transporter.app ile yapilir (kullanici).
+pkg: sign-mas
+	@rm -f $(PKG)
+	productbuild --component $(MAS_BUNDLE) /Applications \
+	  --sign "$(MAS_PKG_ID)" $(PKG)
+	@echo "App Store paketi: $(PKG) — Transporter.app ile yukle"
+
 clean:
-	rm -rf $(BUILD_DIR) .build
+	rm -rf $(BUILD_DIR) .build $(MAS_SCRATCH)
