@@ -18,6 +18,7 @@ extension Defaults.Keys {
     static let showReviewRequested = Key<Bool>("showReviewRequested", default: true)
     static let showChangesRequested = Key<Bool>("showChangesRequested", default: true)
     static let showMyPullRequests = Key<Bool>("showMyPullRequests", default: true)
+    static let showEmptySections = Key<Bool>("showEmptySections", default: false)
     static let refreshMinutes = Key<Int>("refreshMinutes", default: 5)
     static let repoGroupThreshold = Key<Int>("repoGroupThreshold", default: 3)
     static let notificationsEnabled = Key<Bool>("notificationsEnabled", default: true)
@@ -50,6 +51,7 @@ extension Settings {
         settings.showReviewRequested = Defaults[.showReviewRequested]
         settings.showChangesRequested = Defaults[.showChangesRequested]
         settings.showMyPullRequests = Defaults[.showMyPullRequests]
+        settings.showEmptySections = Defaults[.showEmptySections]
         settings.repoGroupThreshold = Defaults[.repoGroupThreshold]
         return settings
     }

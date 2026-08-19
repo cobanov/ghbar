@@ -22,6 +22,8 @@ final class MenuBuilder {
         var knownOrganizations: [String] = []
         var selectedOrganizations: [String] = []
         var visibleSections: Set<SectionKind>
+        /// Acikken bos bolum basligi ve "None" satiri korunur.
+        var showEmptySections: Bool = false
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
         var now: Date
@@ -62,30 +64,25 @@ final class MenuBuilder {
         }
 
         if input.errors.isEmpty && !input.isSignedOut {
-            for kind in SectionKind.allCases where input.visibleSections.contains(kind) {
-                menu.addItem(.sectionHeader(title: kind.title))
-                if let section = input.sections.first(where: { $0.kind == kind }) {
-                    addRows(of: section, to: menu, input: input)
-                    if section.truncated {
-                        menu.addItem(disabled("Showing first 100 — narrow your filters"))
-                    }
-                    menu.addItem(markAllSeenItem(for: section))
-                } else {
-                    menu.addItem(disabled("None"))
-                }
+            // Bos bolum varsayilan olarak hic cizilmez: bes bolum bir arada
+            // bosken menu bes baslik ve bes gri satirdan ibaret kaliyor ve
+            // bozuk gorunuyordu. Ayar acikken kullanicinin sectigi her bolum
+            // "None" satiriyla gorunur kalir.
+            let kinds = SectionKind.allCases.filter { kind in
+                input.showEmptySections
+                    ? input.visibleSections.contains(kind)
+                    : input.sections.contains { $0.kind == kind }
+            }
+            for kind in kinds { addSection(kind, to: menu, input: input) }
+            if kinds.isEmpty {
+                menu.addItem(caughtUpItem())
                 menu.addItem(.separator())
             }
         } else {
             // Hata sirasinda eksik bolume "None" demek yaniltici olur:
             // GitHub'a bakamadik, gercekten bos oldugunu bilmiyoruz.
             for section in input.sections {
-                menu.addItem(.sectionHeader(title: section.kind.title))
-                addRows(of: section, to: menu, input: input)
-                if section.truncated {
-                    menu.addItem(disabled("Showing first 100 — narrow your filters"))
-                }
-                menu.addItem(markAllSeenItem(for: section))
-                menu.addItem(.separator())
+                addSection(section.kind, to: menu, input: input)
             }
         }
 
@@ -120,6 +117,27 @@ final class MenuBuilder {
     }
 
     // MARK: - Bolum satirlari
+
+    private func addSection(_ kind: SectionKind, to menu: NSMenu, input: Input) {
+        menu.addItem(.sectionHeader(title: kind.title))
+        guard let section = input.sections.first(where: { $0.kind == kind }) else {
+            menu.addItem(disabled("None"))
+            menu.addItem(.separator())
+            return
+        }
+        addRows(of: section, to: menu, input: input)
+        if section.truncated {
+            menu.addItem(disabled("Showing first 100 — narrow your filters"))
+        }
+        menu.addItem(markAllSeenItem(for: section))
+        menu.addItem(.separator())
+    }
+
+    private func caughtUpItem() -> NSMenuItem {
+        let item = disabled("You're all caught up")
+        item.image = Icons.symbol("checkmark.circle", color: .secondaryLabelColor)
+        return item
+    }
 
     private func addRows(of section: MenuSection, to menu: NSMenu, input: Input) {
         let visible = section.rows.prefix(input.maxRowsPerSection)

@@ -17,6 +17,8 @@ struct Settings: Sendable, Equatable {
     var showReviewRequested: Bool = true
     var showChangesRequested: Bool = true
     var showMyPullRequests: Bool = true
+    /// Bos bolumu basligiyla ve "None" satiriyla goster.
+    var showEmptySections: Bool = false
     var repoGroupThreshold: Int = 3
     var maxRowsPerSection: Int = 5
 

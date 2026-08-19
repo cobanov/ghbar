@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let settingsWindow = SettingsController()
     private var isSignedOut = false
     private var settingsObserver: Task<Void, Never>?
+    private var displayObserver: Task<Void, Never>?
 
     private var sections: [MenuSection] = []
     private var viewer: Viewer?
@@ -57,6 +58,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self else { return }
                 self.scheduleTimer()
                 self.refresh()
+            }
+        }
+
+        // Yalnizca cizimi degistiren ayarlar. Yukaridaki listeye konsaydi her
+        // isaret bir GitHub istegi harcardi; elde olan veri zaten yeterli.
+        displayObserver = Task { [weak self] in
+            for await _ in Defaults.updates([.showEmptySections], initial: false) {
+                guard let self else { return }
+                self.rebuildMenu()
             }
         }
 
@@ -177,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             knownOrganizations: Defaults[.knownOrganizations],
             selectedOrganizations: settings.organizations,
             visibleSections: settings.visibleSections,
+            showEmptySections: settings.showEmptySections,
             maxRowsPerSection: Settings.default.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },
             now: Date()

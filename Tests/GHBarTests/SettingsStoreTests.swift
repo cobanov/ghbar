@@ -12,7 +12,7 @@ struct SettingsStoreTests {
                        .repoList, .repoListIsAllowList,
                        .showBots, .showDrafts, .showPullRequests, .showIssues,
                        .showReviewRequested, .showChangesRequested, .showMyPullRequests,
-                       .refreshMinutes,
+                       .showEmptySections, .refreshMinutes,
                        .repoGroupThreshold, .notificationsEnabled)
     }
 
@@ -35,6 +35,7 @@ struct SettingsStoreTests {
         Defaults[.showReviewRequested] = false
         Defaults[.showChangesRequested] = false
         Defaults[.showMyPullRequests] = false
+        Defaults[.showEmptySections] = true
         Defaults[.repoGroupThreshold] = 10
 
         let s = Settings.fromDefaults()
@@ -45,6 +46,7 @@ struct SettingsStoreTests {
         #expect(s.showBots == true)
         #expect(s.showDrafts == false)
         #expect(s.visibleSections.isEmpty)
+        #expect(s.showEmptySections == true)
         #expect(s.repoGroupThreshold == 10)
     }
 

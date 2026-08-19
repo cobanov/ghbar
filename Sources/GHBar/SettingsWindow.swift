@@ -262,6 +262,7 @@ struct GeneralPane: View {
     @Default(.showReviewRequested) private var showReviewRequested
     @Default(.showChangesRequested) private var showChangesRequested
     @Default(.showMyPullRequests) private var showMyPullRequests
+    @Default(.showEmptySections) private var showEmptySections
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
@@ -272,6 +273,7 @@ struct GeneralPane: View {
                 Toggle("Review Requested", isOn: $showReviewRequested)
                 Toggle("Changes Requested", isOn: $showChangesRequested)
                 Toggle("My Pull Requests", isOn: $showMyPullRequests)
+                Toggle("Keep empty sections visible", isOn: $showEmptySections)
             }
 
             Picker("Refresh every", selection: $refreshMinutes) {

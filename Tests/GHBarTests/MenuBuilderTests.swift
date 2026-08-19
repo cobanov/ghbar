@@ -6,19 +6,37 @@ import Testing
 @Suite("MenuBuilder")
 struct MenuBuilderTests {
 
-    @Test("basarili bos sonuc her bolumu None ile gosterir")
+    @Test("bos sonuc tek satira iner, baslik birakmaz")
     @MainActor
     func emptySections() {
-        let menu = makeMenu(sections: [])
-        let titles = menu.items.map(\.title)
+        let titles = makeMenu(sections: []).items.map(\.title)
+
+        #expect(titles.contains("You're all caught up"))
+        #expect(!titles.contains("None"))
+        #expect(!titles.contains("Pull Requests"))
+        #expect(!titles.contains("Issues"))
+        #expect(!titles.contains("Review Requested"))
+        #expect(!titles.contains("Changes Requested"))
+        #expect(!titles.contains("My Pull Requests"))
+    }
+
+    @Test("ayar acikken bos bolumler None ile korunur")
+    @MainActor
+    func emptySectionsKeptWhenRequested() {
+        let titles = makeMenu(sections: [], showEmptySections: true).items.map(\.title)
 
         #expect(titles.contains("Pull Requests"))
-        #expect(titles.contains("Issues"))
-        #expect(titles.contains("Review Requested"))
-        #expect(titles.contains("Changes Requested"))
         #expect(titles.contains("My Pull Requests"))
         #expect(titles.filter { $0 == "None" }.count == 5)
-        #expect(!titles.contains("Nothing waiting"))
+        #expect(!titles.contains("You're all caught up"))
+    }
+
+    @Test("ayar acik ama tum bolumler gizliyken yine tek satir kalir")
+    @MainActor
+    func caughtUpWhenEverythingHidden() {
+        let titles = makeMenu(sections: [], visibleSections: [], showEmptySections: true)
+            .items.map(\.title)
+        #expect(titles.contains("You're all caught up"))
     }
 
     @Test("dolu bolum satirlari, bos bolumler None gosterir")
@@ -42,15 +60,18 @@ struct MenuBuilderTests {
         )
 
         let titles = makeMenu(sections: [section]).items.map(\.title)
-        #expect(titles.filter { $0 == "None" }.count == 4)
+        #expect(titles.contains("Pull Requests"))
+        #expect(!titles.contains("None"))
+        #expect(!titles.contains("You're all caught up"))
         #expect(titles.filter { $0 == "Mark All as Seen" }.count == 1)
     }
 
-    @Test("gizlenen bolum basligi ve None satiri olusturmaz")
+    @Test("ayar acikken gizlenen bolum yine hic cizilmez")
     @MainActor
     func hiddenSection() {
         let visible: Set<SectionKind> = [.pullRequests, .reviewRequested]
-        let titles = makeMenu(sections: [], visibleSections: visible).items.map(\.title)
+        let titles = makeMenu(sections: [], visibleSections: visible, showEmptySections: true)
+            .items.map(\.title)
 
         #expect(titles.contains("Pull Requests"))
         #expect(titles.contains("Review Requested"))
@@ -71,6 +92,7 @@ struct MenuBuilderTests {
     private func makeMenu(
         sections: [MenuSection],
         visibleSections: Set<SectionKind> = Set(SectionKind.allCases),
+        showEmptySections: Bool = false,
         isRefreshing: Bool = false
     ) -> NSMenu {
         MenuBuilder(target: NSObject()).build(.init(
@@ -85,6 +107,7 @@ struct MenuBuilderTests {
             knownOrganizations: [],
             selectedOrganizations: [],
             visibleSections: visibleSections,
+            showEmptySections: showEmptySections,
             maxRowsPerSection: 5,
             isSeen: { _ in false },
             now: Date()
