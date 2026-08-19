@@ -59,6 +59,8 @@ bundle: build $(ICNS)
 	cp $(BINARY) $(CONTENTS)/MacOS/$(APP)
 	cp $(ICNS) $(CONTENTS)/Resources/$(APP).icns
 	@printf '%s' 'APPL????' > $(CONTENTS)/PkgInfo
+	@# Iki cagri: bu macOS'taki PlistBuddy 13'ten fazla -c komutuyla
+	@# SIGABRT atiyor (olculdu: 13 ok, 14+ Abort trap 6).
 	@/usr/libexec/PlistBuddy -c "Clear dict" \
 	  -c "Add :CFBundleName string $(APP)" \
 	  -c "Add :CFBundleDisplayName string $(APP)" \
@@ -68,6 +70,8 @@ bundle: build $(ICNS)
 	  -c "Add :CFBundlePackageType string APPL" \
 	  -c "Add :CFBundleShortVersionString string $(VERSION)" \
 	  -c "Add :CFBundleVersion string $(VERSION)" \
+	  $(CONTENTS)/Info.plist >/dev/null
+	@/usr/libexec/PlistBuddy \
 	  -c "Add :LSMinimumSystemVersion string $(MIN_MACOS)" \
 	  -c "Add :LSUIElement bool true" \
 	  -c "Add :LSApplicationCategoryType string public.app-category.developer-tools" \
@@ -193,6 +197,7 @@ bundle-mas: build-mas $(ICNS)
 	cp $(MAS_SCRATCH)/release/$(APP) $(MAS_CONTENTS)/MacOS/$(APP)
 	cp $(ICNS) $(MAS_CONTENTS)/Resources/$(APP).icns
 	@printf '%s' 'APPL????' > $(MAS_CONTENTS)/PkgInfo
+	@# PlistBuddy 13-komut siniri: iki cagri (bundle hedefindeki notla ayni).
 	@/usr/libexec/PlistBuddy -c "Clear dict" \
 	  -c "Add :CFBundleName string $(APP)" \
 	  -c "Add :CFBundleDisplayName string $(APP)" \
@@ -202,6 +207,8 @@ bundle-mas: build-mas $(ICNS)
 	  -c "Add :CFBundlePackageType string APPL" \
 	  -c "Add :CFBundleShortVersionString string $(VERSION)" \
 	  -c "Add :CFBundleVersion string $(VERSION)" \
+	  $(MAS_CONTENTS)/Info.plist >/dev/null
+	@/usr/libexec/PlistBuddy \
 	  -c "Add :LSMinimumSystemVersion string $(MIN_MACOS)" \
 	  -c "Add :LSUIElement bool true" \
 	  -c "Add :LSApplicationCategoryType string public.app-category.developer-tools" \
