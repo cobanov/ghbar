@@ -21,6 +21,9 @@ final class MenuBuilder {
         var showOwner: Bool
         var knownOrganizations: [String] = []
         var selectedOrganizations: [String] = []
+        /// Repo beyaz/kara listesi sonucu daraltiyor mu; bos menunun nedenini
+        /// dogru soyleyebilmek icin gerekiyor.
+        var repositoryFilterActive: Bool = false
         var visibleSections: Set<SectionKind>
         /// Acikken bos bolum basligi ve "None" satiri korunur.
         var showEmptySections: Bool = false
@@ -75,7 +78,7 @@ final class MenuBuilder {
             }
             for kind in kinds { addSection(kind, to: menu, input: input) }
             if kinds.isEmpty {
-                menu.addItem(caughtUpItem())
+                for item in emptyStateItems(input) { menu.addItem(item) }
                 menu.addItem(.separator())
             }
         } else {
@@ -133,8 +136,31 @@ final class MenuBuilder {
         menu.addItem(.separator())
     }
 
-    private func caughtUpItem() -> NSMenuItem {
-        let item = disabled("You're all caught up")
+    /// Bos menu neden bos oldugunu soylemeli. Bir filtre sorumluysa filtrenin
+    /// adi ve geri alma yolu ayni yerde durur; kullanici ayarlari arayarak
+    /// bulmak zorunda kalmaz.
+    private func emptyStateItems(_ input: Input) -> [NSMenuItem] {
+        if !input.selectedOrganizations.isEmpty {
+            let scope = input.selectedOrganizations.count == 1
+                ? input.selectedOrganizations[0]
+                : "\(input.selectedOrganizations.count) organizations"
+            let undo = action("Show All Organizations",
+                              #selector(AppDelegate.clearOrganizations))
+            undo.image = Icons.blank
+            return [caughtUpItem("No open work in \(scope)"), undo]
+        }
+
+        if input.repositoryFilterActive {
+            let settings = action("Open Settings…", #selector(AppDelegate.openSettings))
+            settings.image = Icons.blank
+            return [caughtUpItem("No open work in the watched repositories"), settings]
+        }
+
+        return [caughtUpItem("You're all caught up")]
+    }
+
+    private func caughtUpItem(_ title: String) -> NSMenuItem {
+        let item = disabled(title)
         item.image = Icons.symbol("checkmark.circle", color: .secondaryLabelColor)
         return item
     }

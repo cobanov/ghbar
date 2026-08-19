@@ -186,6 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showOwner: settings.accounts.count > 1 || !settings.organizations.isEmpty,
             knownOrganizations: Defaults[.knownOrganizations],
             selectedOrganizations: settings.organizations,
+            repositoryFilterActive: !settings.repoList.isEmpty,
             visibleSections: settings.visibleSections,
             showEmptySections: settings.showEmptySections,
             maxRowsPerSection: Settings.default.maxRowsPerSection,
@@ -247,6 +248,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Defaults[.organizations] = selected
         // Yenileme ag turunu bekliyor; menuyu simdi kurmazsak tik bir sonraki
         // acilista donuyor ve tiklama islenmemis gibi gorunuyor.
+        rebuildMenu()
+    }
+
+    @objc func clearOrganizations() {
+        Defaults[.organizations] = []
+        // toggleOrganization ile ayni sebep: yenileme ag turunu bekliyor.
         rebuildMenu()
     }
 
