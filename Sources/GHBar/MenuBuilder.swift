@@ -18,6 +18,9 @@ final class MenuBuilder {
         var lastRefresh: Date?
         var isSignedOut: Bool
         var showOwner: Bool
+        var knownOrganizations: [String] = []
+        var selectedOrganizations: [String] = []
+        var visibleSections: Set<SectionKind>
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
         var now: Date
@@ -34,6 +37,9 @@ final class MenuBuilder {
             menu.addItem(.separator())
         } else if let viewer = input.viewer {
             menu.addItem(profileItem(viewer))
+            if !input.knownOrganizations.isEmpty {
+                menu.addItem(organizationsItem(input))
+            }
             menu.addItem(.separator())
         }
 
@@ -47,19 +53,32 @@ final class MenuBuilder {
             menu.addItem(.separator())
         }
 
-        for section in input.sections {
-            menu.addItem(.sectionHeader(title: section.kind.title))
-            addRows(of: section, to: menu, input: input)
-            if section.truncated {
-                menu.addItem(disabled("Showing first 100 — narrow your filters"))
+        if input.errors.isEmpty && !input.isSignedOut {
+            for kind in SectionKind.allCases where input.visibleSections.contains(kind) {
+                menu.addItem(.sectionHeader(title: kind.title))
+                if let section = input.sections.first(where: { $0.kind == kind }) {
+                    addRows(of: section, to: menu, input: input)
+                    if section.truncated {
+                        menu.addItem(disabled("Showing first 100 — narrow your filters"))
+                    }
+                    menu.addItem(markAllSeenItem(for: section))
+                } else {
+                    menu.addItem(disabled("None"))
+                }
+                menu.addItem(.separator())
             }
-            menu.addItem(markAllSeenItem(for: section))
-            menu.addItem(.separator())
-        }
-
-        if input.sections.isEmpty && input.errors.isEmpty && !input.isSignedOut {
-            menu.addItem(disabled("Nothing waiting"))
-            menu.addItem(.separator())
+        } else {
+            // Hata sirasinda eksik bolume "None" demek yaniltici olur:
+            // GitHub'a bakamadik, gercekten bos oldugunu bilmiyoruz.
+            for section in input.sections {
+                menu.addItem(.sectionHeader(title: section.kind.title))
+                addRows(of: section, to: menu, input: input)
+                if section.truncated {
+                    menu.addItem(disabled("Showing first 100 — narrow your filters"))
+                }
+                menu.addItem(markAllSeenItem(for: section))
+                menu.addItem(.separator())
+            }
         }
 
         if let rateLimit = input.rateLimit {
@@ -212,6 +231,29 @@ final class MenuBuilder {
     }
 
     // MARK: - Diger satirlar
+
+    private func organizationsItem(_ input: Input) -> NSMenuItem {
+        let selected = Set(input.selectedOrganizations)
+        let parent = NSMenuItem(title: "Organizations", action: nil, keyEquivalent: "")
+        parent.image = Icons.symbol("building.2", color: .secondaryLabelColor)
+        let submenu = NSMenu()
+        for org in input.knownOrganizations.sorted() {
+            let row = NSMenuItem(
+                title: org,
+                action: #selector(AppDelegate.toggleOrganization(_:)),
+                keyEquivalent: ""
+            )
+            row.target = target
+            row.representedObject = org
+            // state sutunu butun satirlari kaydirir; tik gorsel sutununda.
+            row.image = selected.contains(org)
+                ? Icons.symbol("checkmark", color: .labelColor)
+                : Icons.blank
+            submenu.addItem(row)
+        }
+        parent.submenu = submenu
+        return parent
+    }
 
     private func profileItem(_ viewer: Viewer) -> NSMenuItem {
         let text = NSMutableAttributedString(
