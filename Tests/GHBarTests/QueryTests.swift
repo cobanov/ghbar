@@ -22,7 +22,7 @@ struct QueryTests {
         #expect(q.issues == "is:issue is:open org:acme assignee:@me")
         #expect(!q.prs.contains("user:"))
         #expect(!q.prs.contains("-author:"))
-        #expect(q.review == "is:pr is:open review-requested:@me")
+        #expect(q.review == "is:pr is:open review-requested:@me org:acme")
     }
 
     @Test("birden fazla org ayni niteleyicide OR olur") func multipleOrganizations() {
@@ -30,6 +30,7 @@ struct QueryTests {
         s.organizations = ["acme", "widgets"]
         let q = Query.build(s)
         #expect(q.prs == "is:pr is:open org:acme org:widgets assignee:@me")
+        #expect(q.review == "is:pr is:open review-requested:@me org:acme org:widgets")
     }
 
     @Test("kara liste org kapsaminda da -repo: ekler") func denyListWithOrg() {
@@ -38,6 +39,7 @@ struct QueryTests {
         s.repoList = ["acme/noisy"]
         let q = Query.build(s)
         #expect(q.prs == "is:pr is:open org:acme assignee:@me -repo:acme/noisy")
+        #expect(q.review == "is:pr is:open review-requested:@me org:acme -repo:acme/noisy")
     }
 
     @Test("egik cizgisiz repo org seciliyse ilk orgla birlesir") func bareRepoNameUsesOrg() {
@@ -59,6 +61,7 @@ struct QueryTests {
         #expect(q.prs == "is:pr is:open repo:acme/one assignee:@me")
         #expect(!q.prs.contains("org:"))
         #expect(!q.prs.contains("user:"))
+        #expect(q.review == "is:pr is:open review-requested:@me org:acme")
     }
 
     @Test("birden fazla hesap birden fazla user: parcasi verir") func multipleAccounts() {

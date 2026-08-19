@@ -52,10 +52,11 @@ enum Query {
             return kept.joined(separator: " ")
         }
 
-        // review sorgusu hesaplardan bagimsiz: sana review istenen her PR,
-        // hangi repoda olursa olsun. Repo filtresi yine de uygulanir.
+        // review kisisel modda hesaplardan bagimsiz. Org seciliyse ayni
+        // org: niteleyicileri eklenir; yoksa her yerdeki review istegi gelir.
         let (reviewParts, reviewDropped) = fit(
-            ["is:pr", "is:open", "review-requested:@me"],
+            ["is:pr", "is:open", "review-requested:@me"]
+                + settings.organizations.map { "org:\($0)" },
             exclusions: exclusions
         )
         dropped = dropped || reviewDropped

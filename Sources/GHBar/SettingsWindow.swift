@@ -90,7 +90,7 @@ struct AccountsPane: View {
                         Text(org)
                     }
                 }
-                Text("Checked organizations show pull requests and issues assigned to you.")
+                Text("Checked organizations show assigned pull requests, issues, and review requests.")
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }
