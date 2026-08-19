@@ -17,6 +17,7 @@ final class MenuBuilder {
         var errors: [AppError]
         var lastRefresh: Date?
         var isSignedOut: Bool
+        var isRefreshing: Bool = false
         var showOwner: Bool
         var knownOrganizations: [String] = []
         var selectedOrganizations: [String] = []
@@ -39,6 +40,13 @@ final class MenuBuilder {
             menu.addItem(profileItem(viewer))
             if !input.knownOrganizations.isEmpty {
                 menu.addItem(organizationsItem(input))
+            }
+            // Org secimi ag turunu bekliyor. Bu satir olmadan menu, tiklama
+            // hic islenmemis gibi eski sonuclari gosteriyor.
+            if input.isRefreshing {
+                let row = disabled("Refreshing…")
+                row.image = Icons.symbol("arrow.clockwise", color: .secondaryLabelColor)
+                menu.addItem(row)
             }
             menu.addItem(.separator())
         }

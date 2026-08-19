@@ -58,10 +58,18 @@ struct MenuBuilderTests {
         #expect(titles.filter { $0 == "None" }.count == 2)
     }
 
+    @Test("yenileme surerken durum satiri gorunur")
+    @MainActor
+    func refreshingRow() {
+        #expect(makeMenu(sections: [], isRefreshing: true).items.map(\.title).contains("Refreshing…"))
+        #expect(!makeMenu(sections: []).items.map(\.title).contains("Refreshing…"))
+    }
+
     @MainActor
     private func makeMenu(
         sections: [MenuSection],
-        visibleSections: Set<SectionKind> = Set(SectionKind.allCases)
+        visibleSections: Set<SectionKind> = Set(SectionKind.allCases),
+        isRefreshing: Bool = false
     ) -> NSMenu {
         MenuBuilder(target: NSObject()).build(.init(
             viewer: Viewer(login: "alice", name: nil, avatarURL: "x"),
@@ -70,6 +78,7 @@ struct MenuBuilderTests {
             errors: [],
             lastRefresh: Date(),
             isSignedOut: false,
+            isRefreshing: isRefreshing,
             showOwner: false,
             knownOrganizations: [],
             selectedOrganizations: [],

@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var rateLimit: RateLimit?
     private var errors: [AppError] = []
     private var lastRefresh: Date?
-    private var isRefreshing = false
+    private var refreshGate = RefreshGate()
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -81,11 +81,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func refresh() {
-        guard !isRefreshing else { return }
-        isRefreshing = true
+        guard refreshGate.begin() else { return }
 
         Task { @MainActor in
-            defer { isRefreshing = false }
+            defer { if refreshGate.finish() { refresh() } }
+
+            // Kapi acildi; menu artik "Refreshing…" gosterebilir.
+            rebuildMenu()
 
             do {
                 guard let token = TokenProvider.current() else {
@@ -169,6 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             errors: errors,
             lastRefresh: lastRefresh,
             isSignedOut: isSignedOut,
+            isRefreshing: refreshGate.isRunning,
             showOwner: settings.accounts.count > 1 || !settings.organizations.isEmpty,
             knownOrganizations: Defaults[.knownOrganizations],
             selectedOrganizations: settings.organizations,
@@ -230,6 +233,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             selected.append(org)
         }
         Defaults[.organizations] = selected
+        // Yenileme ag turunu bekliyor; menuyu simdi kurmazsak tik bir sonraki
+        // acilista donuyor ve tiklama islenmemis gibi gorunuyor.
+        rebuildMenu()
     }
 
     @objc func openWelcome() { welcome.show() }
