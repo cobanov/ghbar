@@ -13,6 +13,54 @@ struct QueryTests {
         #expect(q.allowListEmpty == false)
     }
 
+    @Test("secili org user: yerine org: kullanir") func organizationScope() {
+        var s = Settings.default
+        s.accounts = ["alice"]
+        s.organizations = ["acme"]
+        let q = Query.build(s)
+        #expect(q.prs == "is:pr is:open org:acme assignee:@me")
+        #expect(q.issues == "is:issue is:open org:acme assignee:@me")
+        #expect(!q.prs.contains("user:"))
+        #expect(!q.prs.contains("-author:"))
+        #expect(q.review == "is:pr is:open review-requested:@me")
+    }
+
+    @Test("birden fazla org ayni niteleyicide OR olur") func multipleOrganizations() {
+        var s = Settings.default
+        s.organizations = ["acme", "widgets"]
+        let q = Query.build(s)
+        #expect(q.prs == "is:pr is:open org:acme org:widgets assignee:@me")
+    }
+
+    @Test("kara liste org kapsaminda da -repo: ekler") func denyListWithOrg() {
+        var s = Settings.default
+        s.organizations = ["acme"]
+        s.repoList = ["acme/noisy"]
+        let q = Query.build(s)
+        #expect(q.prs == "is:pr is:open org:acme assignee:@me -repo:acme/noisy")
+    }
+
+    @Test("egik cizgisiz repo org seciliyse ilk orgla birlesir") func bareRepoNameUsesOrg() {
+        var s = Settings.default
+        s.accounts = ["alice"]
+        s.organizations = ["acme"]
+        s.repoList = ["noisy"]
+        let q = Query.build(s)
+        #expect(q.prs.contains("-repo:acme/noisy"))
+    }
+
+    @Test("beyaz liste org secili olsa da user/org parcalarini birakir") func allowListWinsOverOrg() {
+        var s = Settings.default
+        s.accounts = ["alice"]
+        s.organizations = ["acme"]
+        s.repoList = ["acme/one"]
+        s.repoListIsAllowList = true
+        let q = Query.build(s)
+        #expect(q.prs == "is:pr is:open repo:acme/one assignee:@me")
+        #expect(!q.prs.contains("org:"))
+        #expect(!q.prs.contains("user:"))
+    }
+
     @Test("birden fazla hesap birden fazla user: parcasi verir") func multipleAccounts() {
         var s = Settings.default
         s.accounts = ["alice", "acme"]

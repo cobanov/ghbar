@@ -48,9 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Ayar degisikligi aninda yansir (spec §8): Defaults yayinlarini
         // dinle, zamanlayiciyi yeni araliga kur, yenile.
         settingsObserver = Task { [weak self] in
-            for await _ in Defaults.updates([.accounts, .repoList, .repoListIsAllowList,
-                                             .showBots, .showDrafts, .refreshMinutes,
-                                             .repoGroupThreshold], initial: false) {
+            for await _ in Defaults.updates([.accounts, .organizations, .repoList,
+                                             .repoListIsAllowList, .showBots, .showDrafts,
+                                             .refreshMinutes, .repoGroupThreshold], initial: false) {
                 guard let self else { return }
                 self.scheduleTimer()
                 self.refresh()
@@ -118,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 // gh token'inda nil kalir ve pane 'gh kullaniliyor' der) ve
                 // Ayarlar > Repositories icin aktivite listesi.
                 Defaults[.signedInLogin] = Keychain.token() != nil ? snapshot.viewer.login : nil
+                Defaults[.knownOrganizations] = snapshot.viewer.organizations
                 Defaults[.knownRepos] = Dictionary(grouping: all, by: \.repository)
                     .mapValues(\.count)
 
@@ -158,6 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let unseen = sections.flatMap(\.items).filter { !seenStore.isSeen($0.url) }.count
         statusItem.button?.title = unseen > 0 ? " \(unseen)" : ""
 
+        let settings = Settings.fromDefaults()
         let menu = menuBuilder.build(MenuBuilder.Input(
             viewer: viewer,
             sections: sections,
@@ -165,7 +167,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             errors: errors,
             lastRefresh: lastRefresh,
             isSignedOut: isSignedOut,
-            showOwner: Settings.fromDefaults().accounts.count > 1,
+            showOwner: settings.accounts.count > 1 || !settings.organizations.isEmpty,
+            knownOrganizations: Defaults[.knownOrganizations],
+            selectedOrganizations: settings.organizations,
             maxRowsPerSection: Settings.default.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },
             now: Date()
@@ -214,6 +218,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.open(url)
     }
 
+    @objc func toggleOrganization(_ sender: NSMenuItem) {
+        guard let org = sender.representedObject as? String else { return }
+        var selected = Defaults[.organizations]
+        if selected.contains(org) {
+            selected.removeAll { $0 == org }
+        } else {
+            selected.append(org)
+        }
+        Defaults[.organizations] = selected
+    }
+
     @objc func openWelcome() { welcome.show() }
 
     @objc func openSettings() { settingsWindow.show() }
@@ -221,6 +236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func signOut() {
         Keychain.delete()
         Defaults[.signedInLogin] = nil
+        Defaults[.knownOrganizations] = []
         seenStore.reset()
         sections = []
         viewer = nil
