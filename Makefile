@@ -178,7 +178,9 @@ MASFLAGS      := -Xswiftc -DMAS
 MAS_DIR       := $(BUILD_DIR)/mas
 MAS_BUNDLE    := $(MAS_DIR)/$(APP).app
 MAS_CONTENTS  := $(MAS_BUNDLE)/Contents
-MAS_SIGN_ID   := Apple Distribution: AHMET MERT COBANOGLU (6U58AKY6F8)
+# Isim yerine SHA-1: ayni isimli iki Distribution sertifikasi var (login
+# keychain'deki eski + ghbar-signing'deki yeni); isim ambiguous hatasi verir.
+MAS_SIGN_ID   := 2632468CDF18C5FAFC4A6C2CC26EC610EAE84922
 MAS_PKG_ID    := 3rd Party Mac Developer Installer: AHMET MERT COBANOGLU (6U58AKY6F8)
 MAS_PROFILE   := Packaging/GHBar_MAS.provisionprofile
 PKG           := $(BUILD_DIR)/$(APP)-$(VERSION)-mas.pkg
