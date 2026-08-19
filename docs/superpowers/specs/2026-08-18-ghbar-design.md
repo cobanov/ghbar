@@ -763,3 +763,27 @@ uygulama ikonu, sürüm kontrolü. Bitince: `brew install --cask ghbar`.
 Aşama 1 ve 2 kişisel araç olarak zaten değerli; 3 ve 4 onu dağıtılabilir hale
 getiriyor. Aşama 2'den sonra durup bir süre kullanmak, 3'ü tasarlarken gerçek
 kullanım bilgisiyle karar vermeyi sağlar.
+
+---
+
+## 20. Dağıtım varyantları (karar: 2026-08-19)
+
+İki dağıtım kanalı **ayrı tutulur**; açık kaynak kullanıcıları App Store
+kısıtlarıyla uğraşmaz. Tek kod tabanı, derleme zamanında ayrışan iki varyant
+(`swift build -Xswiftc -DMAS` bayrağı; iki ayrı repo DEĞİL):
+
+| | **Direct (varsayılan)** | **MAS** |
+|---|---|---|
+| Kanal | GitHub Releases + Homebrew cask | Mac App Store |
+| Sandbox | yok | zorunlu (`network.client` entitlement) |
+| Kimlik doğrulama | `gh` önce, OAuth yedek | yalnızca OAuth (sandbox `gh` çalıştıramaz) |
+| Güncelleme | kendi sürüm kontrolü (UpdateChecker) | kapalı — mağaza yapar (kendi kendini güncelleme MAS'ta yasak) |
+| İmza | Developer ID + noterleme | Apple Distribution + provisioning profile, `.pkg` (productbuild) |
+
+Ortak kalanlar: bundle id (`run.cobanov.ghbar` — iki sürüm aynı Application
+Support'u paylaşır, `seen.json` uyumlu), sürüm numaraları (aynı etiketten
+çıkar; MAS incelemesi yüzünden birkaç gün geride kalabilir), ve kodun tamamı
+`#if MAS` blokları dışında.
+
+Önkoşul: Aşama 3 (OAuth + ayarlar penceresi) — MAS varyantı için zorunlu,
+direct varyant için de zaten planlıydı (`gh` şartını kaldırmak).
