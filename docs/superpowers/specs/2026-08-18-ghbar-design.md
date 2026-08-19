@@ -787,3 +787,20 @@ Support'u paylaşır, `seen.json` uyumlu), sürüm numaraları (aynı etiketten
 
 Önkoşul: Aşama 3 (OAuth + ayarlar penceresi) — MAS varyantı için zorunlu,
 direct varyant için de zaten planlıydı (`gh` şartını kaldırmak).
+
+### Tek repo korkulukları (karar netleştirme: 2026-08-19)
+
+"Tek repo karışır mı?" endişesine karşı üç kural:
+
+1. **`#if MAS` sınırlı:** en fazla 2-3 dosyada tek dallanma noktası
+   (TokenProvider, UpdateChecker). UI kodunda `#if MAS` görülmesi tasarım
+   hatası sayılır.
+2. **`make check` iki varyantı da derler** (normal + `-DMAS`) ve testleri
+   koşar; MAS varyantını bozan değişiklik yayın gününde değil anında yakalanır.
+3. **Yayın hatları ayrı hedefler:** `make publish` (Developer ID → brew/release)
+   ve `make mas` (Apple Distribution → .pkg → App Store Connect) birbirine
+   dokunmaz.
+
+Ayrı repo yalnızca MAS sürümü farklı bir ürüne dönüşürse (ücretli, farklı
+özellik seti) gündeme gelir; mevcut kapsamda ~15 satır Swift farkı için iki
+kod tabanını elle senkron tutmak sürüm kayması riskini kendisi yaratır.
