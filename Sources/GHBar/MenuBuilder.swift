@@ -129,17 +129,6 @@ final class MenuBuilder {
         menu.addItem(action("Settings…", #selector(AppDelegate.openSettings), key: ","))
         for item in markAllSeenItems(input) { menu.addItem(item) }
 
-        if LaunchAtLogin.isAvailable {
-            // Tik, NSMenuItem.state yerine gorsel sutununda: state kullanmak
-            // menuye AYRI bir durum sutunu ekletiyor ve butun satirlari saga
-            // kaydiriyor. Gorsel sutunu zaten var, bedava.
-            let launch = action("Launch at Login", #selector(AppDelegate.toggleLaunchAtLogin))
-            launch.image = LaunchAtLogin.isEnabled
-                ? Icons.symbol("checkmark", color: .labelColor)
-                : Icons.blank
-            menu.addItem(launch)
-        }
-
         menu.addItem(.separator())
         menu.addItem(disabled("GHBar \(AppVersion.current)"))
         menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit), key: "q"))

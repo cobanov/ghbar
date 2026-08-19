@@ -206,6 +206,11 @@ struct MenuBuilderTests {
                                           rateLimitVisibility: .never)))
     }
 
+    @Test("Launch at Login menude degil, ayarlarda") @MainActor
+    func launchAtLoginNotInMenu() {
+        #expect(!makeMenu(sections: []).items.map(\.title).contains("Launch at Login"))
+    }
+
     @Test("yenileme surerken durum satiri gorunur")
     @MainActor
     func refreshingRow() {

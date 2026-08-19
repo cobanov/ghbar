@@ -221,11 +221,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildMenu()
     }
 
-    @objc func toggleLaunchAtLogin() {
-        LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
-        rebuildMenu()
-    }
-
     @objc func markSectionSeen(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String,
               let kind = SectionKind(rawValue: raw),
