@@ -4,6 +4,7 @@ struct Queries: Sendable, Equatable {
     let prs: String
     let issues: String
     let review: String
+    let changesRequested: String
     /// Uzunluk tavani yuzunden bazi filtreler dusuruldu.
     let filtersDropped: Bool
     /// Beyaz liste acik ama bos — hicbir sey gosterilmemeli.
@@ -21,11 +22,17 @@ enum Query {
         let repos = normalizedRepositories(settings)
         let allowListEmpty = settings.repoListIsAllowList && repos.isEmpty
 
-        // Beyaz liste modunda repo listesi kapsami zaten belirliyor;
-        // user: parcalari gereksiz ve yaniltici olur.
-        let scope: [String] = settings.repoListIsAllowList
-            ? repos.map { "repo:\($0)" }
-            : settings.accounts.map { "user:\($0)" }
+        // Beyaz liste kapsami tek basina belirler. Org ile user ayni
+        // aramada AND olur (farkli niteleyici), bu yuzden org seciliyse
+        // yalniz org: kullanilir.
+        let scope: [String]
+        if settings.repoListIsAllowList {
+            scope = repos.map { "repo:\($0)" }
+        } else if !settings.organizations.isEmpty {
+            scope = settings.organizations.map { "org:\($0)" }
+        } else {
+            scope = settings.accounts.map { "user:\($0)" }
+        }
 
         let exclusions: [String] = settings.repoListIsAllowList
             ? []
@@ -33,26 +40,44 @@ enum Query {
 
         var dropped = false
 
+        // Kisisel mod: baskalarinin senin repolarina actigi isler.
+        // Org modu: sana atanan isler. -author: orgda kendi PR'ini da
+        // gizlerdi; assignee tam tersi, atananlari getirir.
+        let selfFilter = settings.organizations.isEmpty
+            ? ["-author:@me"]
+            : ["assignee:@me"]
+
         func assemble(_ prefix: [String]) -> String {
-            // -author:@me : kendi actiklarini eler. @me kisayolu sayesinde
-            // kullanicinin login'ini bilmeye gerek kalmiyor.
-            let (kept, wasDropped) = fit(prefix + scope + ["-author:@me"], exclusions: exclusions)
+            let (kept, wasDropped) = fit(prefix + scope + selfFilter, exclusions: exclusions)
             dropped = dropped || wasDropped
             return kept.joined(separator: " ")
         }
 
-        // review sorgusu hesaplardan bagimsiz: sana review istenen her PR,
-        // hangi repoda olursa olsun. Repo filtresi yine de uygulanir.
+        // review kisisel modda hesaplardan bagimsiz. Org seciliyse ayni
+        // org: niteleyicileri eklenir; yoksa her yerdeki review istegi gelir.
         let (reviewParts, reviewDropped) = fit(
-            ["is:pr", "is:open", "review-requested:@me"],
+            ["is:pr", "is:open", "review-requested:@me"]
+                + settings.organizations.map { "org:\($0)" },
             exclusions: exclusions
         )
         dropped = dropped || reviewDropped
+
+        // Kullanicinin kendi PR'lari normal PR aramasinda -author:@me ile
+        // elenir. Degisiklik isteyen review, ayri ve daha guclu bir is sinyali.
+        let changesScope = settings.repoListIsAllowList
+            ? repos.map { "repo:\($0)" }
+            : settings.organizations.map { "org:\($0)" }
+        let (changesParts, changesDropped) = fit(
+            ["is:pr", "is:open", "author:@me", "review:changes_requested"] + changesScope,
+            exclusions: exclusions
+        )
+        dropped = dropped || changesDropped
 
         return Queries(
             prs:    assemble(["is:pr", "is:open"]),
             issues: assemble(["is:issue", "is:open"]),
             review: reviewParts.joined(separator: " "),
+            changesRequested: changesParts.joined(separator: " "),
             filtersDropped: dropped,
             allowListEmpty: allowListEmpty
         )
@@ -79,7 +104,9 @@ enum Query {
 
     /// "noisy" -> "alice/noisy"; "alice/noisy" oldugu gibi kalir.
     private static func normalizedRepositories(_ settings: Settings) -> [String] {
-        let owner = settings.accounts.first ?? "@me"
+        let owner = settings.organizations.first
+            ?? settings.accounts.first
+            ?? "@me"
         return settings.repoList.compactMap { entry in
             let trimmed = entry.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else { return nil }
@@ -87,14 +114,23 @@ enum Query {
         }
     }
 
-    /// Tek istekte uc arama + profil + kota. Olculdu: toplam maliyeti 1 puan.
+    /// Tek istekte dort arama + profil + kota.
     ///
     /// Ayri bir .graphql dosyasi yerine gomulu metin: Asama 2'de .app paketi
     /// elle kurulacak ve Bundle.module kaynak paketinin de kopyalanmasini
     /// gerektirecekti. Gomulu metin bu ariza yolunu ortadan kaldiriyor.
     static let document = """
-    query($prs: String!, $issues: String!, $review: String!, $first: Int!) {
-      viewer { login name avatarUrl }
+    query(
+      $prs: String!,
+      $issues: String!,
+      $review: String!,
+      $changesRequested: String!,
+      $first: Int!
+    ) {
+      viewer {
+        login name avatarUrl
+        organizations(first: 50) { nodes { login } }
+      }
       prs: search(query: $prs, type: ISSUE, first: $first) {
         issueCount
         nodes { ... on PullRequest {
@@ -112,6 +148,14 @@ enum Query {
         } }
       }
       review: search(query: $review, type: ISSUE, first: $first) {
+        issueCount
+        nodes { ... on PullRequest {
+          number title url createdAt isDraft
+          author { login __typename }
+          repository { nameWithOwner }
+        } }
+      }
+      changesRequested: search(query: $changesRequested, type: ISSUE, first: $first) {
         issueCount
         nodes { ... on PullRequest {
           number title url createdAt isDraft

@@ -4,6 +4,7 @@ import Foundation
 
 private let sampleQueries = Queries(
     prs: "P", issues: "I", review: "R",
+    changesRequested: "C",
     filtersDropped: false, allowListEmpty: false
 )
 
@@ -24,6 +25,7 @@ struct GitHubClientTests {
         #expect(variables["prs"] as? String == "P")
         #expect(variables["issues"] as? String == "I")
         #expect(variables["review"] as? String == "R")
+        #expect(variables["changesRequested"] as? String == "C")
         #expect(variables["first"] as? Int == 100)
     }
 
