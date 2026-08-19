@@ -16,6 +16,7 @@ final class MenuBuilder {
         var rateLimit: RateLimit?
         var errors: [AppError]
         var lastRefresh: Date?
+        var isSignedOut: Bool
         var showOwner: Bool
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
@@ -26,7 +27,12 @@ final class MenuBuilder {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
-        if let viewer = input.viewer {
+        if input.isSignedOut {
+            let signIn = action("Sign in to GitHub…", #selector(AppDelegate.openWelcome))
+            signIn.image = Icons.symbol("person.crop.circle.badge.plus", color: .systemGreen)
+            menu.addItem(signIn)
+            menu.addItem(.separator())
+        } else if let viewer = input.viewer {
             menu.addItem(profileItem(viewer))
             menu.addItem(.separator())
         }
@@ -51,7 +57,7 @@ final class MenuBuilder {
             menu.addItem(.separator())
         }
 
-        if input.sections.isEmpty && input.errors.isEmpty {
+        if input.sections.isEmpty && input.errors.isEmpty && !input.isSignedOut {
             menu.addItem(disabled("Nothing waiting"))
             menu.addItem(.separator())
         }
@@ -67,6 +73,7 @@ final class MenuBuilder {
         // genislik katmiyor — ayni boslugu islevle dolduruyor.
         menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: "o"))
         menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: "r"))
+        menu.addItem(action("Settings…", #selector(AppDelegate.openSettings), key: ","))
 
         if LaunchAtLogin.isAvailable {
             // Tik, NSMenuItem.state yerine gorsel sutununda: state kullanmak

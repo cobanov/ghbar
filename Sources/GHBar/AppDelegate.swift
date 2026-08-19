@@ -1,4 +1,5 @@
 import AppKit
+import Defaults
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -7,7 +8,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var menuBuilder: MenuBuilder!
     private let seenStore = SeenStore(url: SeenStore.defaultURL)
     private let notifier = Notifier()
-    private let settings = Settings.default
+    private let welcome = WelcomeController()
+    private let settingsWindow = SettingsController()
+    private var isSignedOut = false
+    private var settingsObserver: Task<Void, Never>?
 
     private var sections: [MenuSection] = []
     private var viewer: Viewer?
@@ -31,14 +35,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
 
         menuBuilder = MenuBuilder(target: self)
+        welcome.onSignedIn = { [weak self] in self?.refresh() }
+        settingsWindow.onSignOut = { [weak self] in self?.signOut() }
         notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
         // performClick menu cubugundaki dugmeye programatik tiklama — menuyu acar.
         notifier.onOpenSummary = { [weak self] in self?.statusItem.button?.performClick(nil) }
         notifier.start()
         rebuildMenu()
 
-        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+        scheduleTimer()
+
+        // Ayar degisikligi aninda yansir (spec §8): Defaults yayinlarini
+        // dinle, zamanlayiciyi yeni araliga kur, yenile.
+        settingsObserver = Task { [weak self] in
+            for await _ in Defaults.updates([.accounts, .repoList, .repoListIsAllowList,
+                                             .showBots, .showDrafts, .refreshMinutes,
+                                             .repoGroupThreshold], initial: false) {
+                guard let self else { return }
+                self.scheduleTimer()
+                self.refresh()
+            }
         }
 
         // Uykudan uyaninca yenile; onsuz kapagi actiginda saatler oncesinin
@@ -54,6 +70,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Yenileme
 
+    private func scheduleTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: Settings.refreshInterval(),
+                                     repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
     func refresh() {
         guard !isRefreshing else { return }
         isRefreshing = true
@@ -63,8 +87,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             do {
                 guard let token = TokenProvider.current() else {
-                    throw AppError.notSignedIn
+                    // Oturum yoklugu hata satiri degil, menude eyleme cagri.
+                    isSignedOut = true
+                    sections = []
+                    errors = []
+                    viewer = nil
+                    rebuildMenu()
+                    return
                 }
+                isSignedOut = false
+                let settings = Settings.fromDefaults()
                 let queries = Query.build(settings)
 
                 var collected: [AppError] = []
@@ -82,6 +114,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let built = Filtering.sections(from: snapshot, settings: settings)
                 let all = built.flatMap(\.items)
 
+                // Ayarlar > Accounts icin oturum bilgisi (yalniz OAuth'ta;
+                // gh token'inda nil kalir ve pane 'gh kullaniliyor' der) ve
+                // Ayarlar > Repositories icin aktivite listesi.
+                Defaults[.signedInLogin] = Keychain.token() != nil ? snapshot.viewer.login : nil
+                Defaults[.knownRepos] = Dictionary(grouping: all, by: \.repository)
+                    .mapValues(\.count)
+
                 // Bildirim "gorulmemis"e degil "hic bildirilmemis"e bakar.
                 // Gorulmusluk kullanici tiklayinca degisen bir menu durumu;
                 // ikisi ayni kume sanildiginda her yenilemede ayni eski
@@ -93,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 seenStore.markNotified(all.map(\.url))
                 seenStore.prune(keeping: Set(all.map(\.url)))
                 try? seenStore.save()
-                notifier.notify(about: fresh)
+                if Defaults[.notificationsEnabled] { notifier.notify(about: fresh) }
 
                 // Avatar bir kez inip diske yaziliyor; URL degisirse yenileniyor.
                 if await Avatar.refresh(from: snapshot.viewer.avatarURL) {
@@ -125,8 +164,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             rateLimit: rateLimit,
             errors: errors,
             lastRefresh: lastRefresh,
-            showOwner: settings.accounts.count > 1,
-            maxRowsPerSection: settings.maxRowsPerSection,
+            isSignedOut: isSignedOut,
+            showOwner: Settings.fromDefaults().accounts.count > 1,
+            maxRowsPerSection: Settings.default.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },
             now: Date()
         ))
@@ -172,6 +212,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func openProfile() {
         guard let viewer, let url = URL(string: viewer.profileURL) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    @objc func openWelcome() { welcome.show() }
+
+    @objc func openSettings() { settingsWindow.show() }
+
+    private func signOut() {
+        Keychain.delete()
+        Defaults[.signedInLogin] = nil
+        seenStore.reset()
+        sections = []
+        viewer = nil
+        rateLimit = nil
+        // Direct varyantta gh varsa zincir ona duser (spec §5 sirasi);
+        // yoksa oturumsuz duruma gecilir.
+        refresh()
     }
 
     @objc func refreshNow() { refresh() }
