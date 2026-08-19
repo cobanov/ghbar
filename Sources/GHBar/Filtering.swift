@@ -3,19 +3,23 @@ import Foundation
 enum Filtering {
 
     static func sections(from snapshot: Snapshot, settings: Settings) -> [MenuSection] {
-        // Review istenmis olmak daha guclu bir sinyal: ayni PR iki aramada da
-        // ciktiysa yalniz Review Requested'da gosterilir.
+        // Changes Requested en guclu sinyal, sonra Review Requested gelir.
+        // Ayni PR birden fazla aramada cikarsa yalniz en guclu bolumde kalir.
+        let changesRequested = clean(snapshot.changesRequested, settings: settings)
+        let changesURLs = Set(changesRequested.map(\.url))
         let review = clean(snapshot.review, settings: settings)
+            .filter { !changesURLs.contains($0.url) }
         let reviewURLs = Set(review.map(\.url))
 
         let prs = clean(snapshot.prs, settings: settings)
-            .filter { !reviewURLs.contains($0.url) }
+            .filter { !reviewURLs.contains($0.url) && !changesURLs.contains($0.url) }
         let issues = clean(snapshot.issues, settings: settings)
 
         let candidates: [(SectionKind, [Item])] = [
             (.pullRequests, prs),
             (.issues, issues),
             (.reviewRequested, review),
+            (.changesRequested, changesRequested),
         ]
 
         return candidates.compactMap { kind, items in
