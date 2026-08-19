@@ -8,8 +8,11 @@ import Defaults
 struct SettingsStoreTests {
 
     private func resetAll() {
-        Defaults.reset(.accounts, .repoList, .repoListIsAllowList,
-                       .showBots, .showDrafts, .refreshMinutes,
+        Defaults.reset(.accounts, .organizations, .knownOrganizations,
+                       .repoList, .repoListIsAllowList,
+                       .showBots, .showDrafts, .showPullRequests, .showIssues,
+                       .showReviewRequested, .showChangesRequested, .showMyPullRequests,
+                       .refreshMinutes,
                        .repoGroupThreshold, .notificationsEnabled)
     }
 
@@ -22,18 +25,26 @@ struct SettingsStoreTests {
         resetAll()
         defer { resetAll() }
         Defaults[.accounts] = ["alice", "acme"]
+        Defaults[.organizations] = ["acme"]
         Defaults[.repoList] = ["alice/noisy"]
         Defaults[.repoListIsAllowList] = true
         Defaults[.showBots] = true
         Defaults[.showDrafts] = false
+        Defaults[.showPullRequests] = false
+        Defaults[.showIssues] = false
+        Defaults[.showReviewRequested] = false
+        Defaults[.showChangesRequested] = false
+        Defaults[.showMyPullRequests] = false
         Defaults[.repoGroupThreshold] = 10
 
         let s = Settings.fromDefaults()
         #expect(s.accounts == ["alice", "acme"])
+        #expect(s.organizations == ["acme"])
         #expect(s.repoList == ["alice/noisy"])
         #expect(s.repoListIsAllowList == true)
         #expect(s.showBots == true)
         #expect(s.showDrafts == false)
+        #expect(s.visibleSections.isEmpty)
         #expect(s.repoGroupThreshold == 10)
     }
 
