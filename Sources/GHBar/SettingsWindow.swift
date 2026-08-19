@@ -27,17 +27,57 @@ final class SettingsController {
 
 struct SettingsView: View {
     var onSignOut: () -> Void
+    @State private var selectedTab = Tab.accounts
+
+    private enum Tab: String, CaseIterable {
+        case accounts = "Accounts"
+        case repositories = "Repositories"
+        case general = "General"
+
+        var symbol: String {
+            switch self {
+            case .accounts: "person.crop.circle"
+            case .repositories: "folder"
+            case .general: "gearshape"
+            }
+        }
+    }
 
     var body: some View {
-        TabView {
-            AccountsPane(onSignOut: onSignOut)
-                .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
-            RepositoriesPane()
-                .tabItem { Label("Repositories", systemImage: "folder") }
-            GeneralPane()
-                .tabItem { Label("General", systemImage: "gearshape") }
+        VStack(spacing: 0) {
+            HStack(spacing: 4) {
+                ForEach(Tab.allCases, id: \.self) { tab in
+                    Button {
+                        selectedTab = tab
+                    } label: {
+                        Label(tab.rawValue, systemImage: tab.symbol)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .foregroundColor(selectedTab == tab ? .white : .primary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(selectedTab == tab ? Color.accentColor : .clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider()
+
+            switch selectedTab {
+            case .accounts:
+                AccountsPane(onSignOut: onSignOut)
+            case .repositories:
+                RepositoriesPane()
+            case .general:
+                GeneralPane()
+            }
         }
-        .frame(width: 440, height: 380)
+        .frame(width: 440, height: 460)
     }
 }
 
@@ -47,7 +87,13 @@ struct AccountsPane: View {
     var onSignOut: () -> Void
     @Default(.signedInLogin) private var signedInLogin
     @Default(.accounts) private var accounts
+    @Default(.organizations) private var organizations
+    @Default(.knownOrganizations) private var knownOrganizations
     @State private var newAccount = ""
+
+    private var organizationRows: [String] {
+        Array(Set(knownOrganizations).union(organizations)).sorted()
+    }
 
     var body: some View {
         Form {
@@ -66,16 +112,42 @@ struct AccountsPane: View {
                     }
                 }
                 HStack {
-                    TextField("user or org", text: $newAccount)
+                    TextField("username", text: $newAccount)
                         .onSubmit(add)
                     Button("Add", action: add)
                         .disabled(newAccount.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                Text("@me is you. Add organizations to watch their repositories too.")
+                Text("@me is you. Personal repositories stay on this list.")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+            Section("Organizations") {
+                if organizationRows.isEmpty {
+                    Text("Organizations you belong to appear here after a refresh.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(organizationRows, id: \.self) { org in
+                    Toggle(isOn: organizationBinding(org)) {
+                        Text(org)
+                    }
+                }
+                Text("Checked organizations show assigned pull requests, issues, and review requests.")
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func organizationBinding(_ org: String) -> Binding<Bool> {
+        Binding(
+            get: { organizations.contains(org) },
+            set: { on in
+                if on {
+                    if !organizations.contains(org) { organizations.append(org) }
+                } else {
+                    organizations.removeAll { $0 == org }
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -185,10 +257,31 @@ struct GeneralPane: View {
     @Default(.notificationsEnabled) private var notificationsEnabled
     @Default(.showBots) private var showBots
     @Default(.showDrafts) private var showDrafts
+    @Default(.showPullRequests) private var showPullRequests
+    @Default(.showIssues) private var showIssues
+    @Default(.showReviewRequested) private var showReviewRequested
+    @Default(.showChangesRequested) private var showChangesRequested
+    @Default(.showMyPullRequests) private var showMyPullRequests
+    @Default(.showEmptySections) private var showEmptySections
+    @Default(.menuRowBudget) private var menuRowBudget
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
         Form {
+            Section("Menu sections") {
+                Toggle("Pull Requests", isOn: $showPullRequests)
+                Toggle("Issues", isOn: $showIssues)
+                Toggle("Review Requested", isOn: $showReviewRequested)
+                Toggle("Changes Requested", isOn: $showChangesRequested)
+                Toggle("My Pull Requests", isOn: $showMyPullRequests)
+                Toggle("Keep empty sections visible", isOn: $showEmptySections)
+                Picker("Menu height", selection: $menuRowBudget) {
+                    Text("Compact").tag(16)
+                    Text("Standard").tag(24)
+                    Text("Tall").tag(32)
+                }
+            }
+
             Picker("Refresh every", selection: $refreshMinutes) {
                 Text("1 minute").tag(1)
                 Text("5 minutes").tag(5)
