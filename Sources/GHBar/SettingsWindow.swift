@@ -263,6 +263,7 @@ struct GeneralPane: View {
     @Default(.showChangesRequested) private var showChangesRequested
     @Default(.showMyPullRequests) private var showMyPullRequests
     @Default(.showEmptySections) private var showEmptySections
+    @Default(.menuRowBudget) private var menuRowBudget
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
@@ -274,6 +275,11 @@ struct GeneralPane: View {
                 Toggle("Changes Requested", isOn: $showChangesRequested)
                 Toggle("My Pull Requests", isOn: $showMyPullRequests)
                 Toggle("Keep empty sections visible", isOn: $showEmptySections)
+                Picker("Menu height", selection: $menuRowBudget) {
+                    Text("Compact").tag(16)
+                    Text("Standard").tag(24)
+                    Text("Tall").tag(32)
+                }
             }
 
             Picker("Refresh every", selection: $refreshMinutes) {

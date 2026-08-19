@@ -20,7 +20,12 @@ struct Settings: Sendable, Equatable {
     /// Bos bolumu basligiyla ve "None" satiriyla goster.
     var showEmptySections: Bool = false
     var repoGroupThreshold: Int = 3
+    /// Menunun bolum satirlarina ayirdigi toplam butce.
+    var menuRowBudget: Int = 24
+    /// Tek bir bolumun tavani; butce bol olsa da bir bolum menuyu ele
+    /// gecirmesin.
     var maxRowsPerSection: Int = 5
+    var minRowsPerSection: Int = 1
 
     static let `default` = Settings()
 

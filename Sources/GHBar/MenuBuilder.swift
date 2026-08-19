@@ -27,6 +27,10 @@ final class MenuBuilder {
         var visibleSections: Set<SectionKind>
         /// Acikken bos bolum basligi ve "None" satiri korunur.
         var showEmptySections: Bool = false
+        /// Bolum govdeleri, basliklari ve ayraclari icin hedef satir sayisi.
+        var workRowBudget: Int = 24
+        /// Her bolumun garanti satiri.
+        var minRowsPerSection: Int = 1
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
         var now: Date
@@ -66,6 +70,18 @@ final class MenuBuilder {
             menu.addItem(.separator())
         }
 
+        let plans = MenuLayout.plan(
+            SectionKind.allCases.compactMap { kind in
+                input.sections.first { $0.kind == kind }
+            },
+            workRowBudget: input.workRowBudget,
+            cap: input.maxRowsPerSection,
+            minimum: input.minRowsPerSection
+        )
+        func plan(for kind: SectionKind) -> SectionPlan? {
+            plans.first { $0.section.kind == kind }
+        }
+
         if input.errors.isEmpty && !input.isSignedOut {
             // Bos bolum varsayilan olarak hic cizilmez: bes bolum bir arada
             // bosken menu bes baslik ve bes gri satirdan ibaret kaliyor ve
@@ -76,7 +92,9 @@ final class MenuBuilder {
                     ? input.visibleSections.contains(kind)
                     : input.sections.contains { $0.kind == kind }
             }
-            for kind in kinds { addSection(kind, to: menu, input: input) }
+            for kind in kinds {
+                addSection(kind, plan: plan(for: kind), to: menu, input: input)
+            }
             if kinds.isEmpty {
                 for item in emptyStateItems(input) { menu.addItem(item) }
                 menu.addItem(.separator())
@@ -84,8 +102,8 @@ final class MenuBuilder {
         } else {
             // Hata sirasinda eksik bolume "None" demek yaniltici olur:
             // GitHub'a bakamadik, gercekten bos oldugunu bilmiyoruz.
-            for section in input.sections {
-                addSection(section.kind, to: menu, input: input)
+            for entry in plans {
+                addSection(entry.section.kind, plan: entry, to: menu, input: input)
             }
         }
 
@@ -121,18 +139,20 @@ final class MenuBuilder {
 
     // MARK: - Bolum satirlari
 
-    private func addSection(_ kind: SectionKind, to menu: NSMenu, input: Input) {
+    private func addSection(
+        _ kind: SectionKind,
+        plan: SectionPlan?,
+        to menu: NSMenu,
+        input: Input
+    ) {
         menu.addItem(.sectionHeader(title: kind.title))
-        guard let section = input.sections.first(where: { $0.kind == kind }) else {
+        guard let plan else {
             menu.addItem(disabled("None"))
             menu.addItem(.separator())
             return
         }
-        addRows(of: section, to: menu, input: input)
-        if section.truncated {
-            menu.addItem(disabled("Showing first 100 — narrow your filters"))
-        }
-        menu.addItem(markAllSeenItem(for: section))
+        addRows(of: plan, to: menu, input: input)
+        menu.addItem(markAllSeenItem(for: plan.section))
         menu.addItem(.separator())
     }
 
@@ -165,20 +185,29 @@ final class MenuBuilder {
         return item
     }
 
-    private func addRows(of section: MenuSection, to menu: NSMenu, input: Input) {
-        let visible = section.rows.prefix(input.maxRowsPerSection)
-        for row in visible {
+    private func addRows(of plan: SectionPlan, to menu: NSMenu, input: Input) {
+        for row in plan.visible {
             menu.addItem(item(for: row, input: input))
         }
 
-        let overflow = section.rows.count - visible.count
-        guard overflow > 0 else { return }
+        guard !plan.overflow.isEmpty else {
+            if plan.section.truncated {
+                menu.addItem(disabled("Showing first 100 — narrow your filters"))
+            }
+            return
+        }
 
-        let more = NSMenuItem(title: "\(overflow) more…", action: nil, keyEquivalent: "")
+        let more = NSMenuItem(title: "\(plan.overflow.count) more…",
+                              action: nil, keyEquivalent: "")
         more.image = Icons.blank   // ikonlu satirlarla ayni hizada baslasin
         let submenu = NSMenu()
-        for row in section.rows.dropFirst(visible.count) {
+        for row in plan.overflow {
             submenu.addItem(item(for: row, input: input))
+        }
+        // Kirpilma uyarisi nadir bir durum; ust duzeyde satir harcamasin.
+        if plan.section.truncated {
+            submenu.addItem(.separator())
+            submenu.addItem(disabled("Showing first 100 — narrow your filters"))
         }
         more.submenu = submenu
         menu.addItem(more)
