@@ -90,7 +90,7 @@ struct AccountsPane: View {
                         Text(org)
                     }
                 }
-                Text("Checked organizations replace personal repositories in the search.")
+                Text("Checked organizations show pull requests and issues assigned to you.")
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }

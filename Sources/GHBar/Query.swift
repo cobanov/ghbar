@@ -39,10 +39,15 @@ enum Query {
 
         var dropped = false
 
+        // Kisisel mod: baskalarinin senin repolarina actigi isler.
+        // Org modu: sana atanan isler. -author: orgda kendi PR'ini da
+        // gizlerdi; assignee tam tersi, atananlari getirir.
+        let selfFilter = settings.organizations.isEmpty
+            ? ["-author:@me"]
+            : ["assignee:@me"]
+
         func assemble(_ prefix: [String]) -> String {
-            // -author:@me : kendi actiklarini eler. @me kisayolu sayesinde
-            // kullanicinin login'ini bilmeye gerek kalmiyor.
-            let (kept, wasDropped) = fit(prefix + scope + ["-author:@me"], exclusions: exclusions)
+            let (kept, wasDropped) = fit(prefix + scope + selfFilter, exclusions: exclusions)
             dropped = dropped || wasDropped
             return kept.joined(separator: " ")
         }
