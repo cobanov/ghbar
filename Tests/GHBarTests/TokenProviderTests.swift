@@ -45,3 +45,23 @@ struct AppErrorTests {
         #expect(AppError.allowListEmpty.menuText == "No repositories selected")
     }
 }
+
+@Suite("TokenProvider.current")
+struct TokenProviderChainTests {
+    let service = "run.cobanov.ghbar.tests.chain"
+
+    @Test("keychain bos ve gh yoksa nil") func nilWhenNothing() {
+        Keychain.delete(service: service)
+        #expect(TokenProvider.current(keychainService: service, ghToken: { nil }) == nil)
+    }
+
+    @Test("keychain bosken gh token'i kullanilir (direct varyant)") func ghFallback() {
+        Keychain.delete(service: service)
+        let token = TokenProvider.current(keychainService: service, ghToken: { "gho_fromgh" })
+        #if MAS
+        #expect(token == nil)          // MAS'ta gh yolu derleme disi
+        #else
+        #expect(token == "gho_fromgh")
+        #endif
+    }
+}

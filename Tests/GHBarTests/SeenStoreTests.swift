@@ -137,3 +137,24 @@ struct SeenStoreNotifiedTests {
         #expect(store.claimNotificationBackfill() == false)
     }
 }
+
+@Suite("SeenStore.reset")
+struct SeenStoreResetTests {
+    @Test("cikis her seyi sifirlar ve diske yazar") func resets() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ghbar-reset-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let store = SeenStore(url: url)
+        _ = store.markFirstRunDone()
+        store.markSeen(["a"], at: Date())
+        store.markNotified(["a"])
+        try store.save()
+
+        store.reset()
+        #expect(store.isFirstRun == true)
+        #expect(store.isSeen("a") == false)
+        let reloaded = SeenStore(url: url)      // reset diske de yazilmis olmali
+        #expect(reloaded.isFirstRun == true)
+    }
+}

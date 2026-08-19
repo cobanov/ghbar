@@ -6,6 +6,9 @@ import Foundation
 /// "bekleyen is yok" ile "bakamadim" ayirt edilemez hale gelir ve kullanici
 /// ikincisini birincisi sanar.
 enum AppError: Error, Equatable {
+    /// Hata degil eyleme cagri: oturum yok, satira tiklamak hos geldin
+    /// penceresini acar.
+    case notSignedIn
     case ghNotFound
     case ghNotAuthenticated
     case network(String)
@@ -17,6 +20,8 @@ enum AppError: Error, Equatable {
 
     var menuText: String {
         switch self {
+        case .notSignedIn:
+            "Sign in to GitHub…"
         case .ghNotFound:
             "GitHub CLI not found — install gh"
         case .ghNotAuthenticated:

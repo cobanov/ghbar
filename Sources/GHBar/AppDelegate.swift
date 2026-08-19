@@ -62,7 +62,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             defer { isRefreshing = false }
 
             do {
-                let token = try TokenProvider.token()
+                guard let token = TokenProvider.current() else {
+                    throw AppError.notSignedIn
+                }
                 let queries = Query.build(settings)
 
                 var collected: [AppError] = []

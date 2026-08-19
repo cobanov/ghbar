@@ -102,6 +102,15 @@ final class SeenStore {
         state.notified = state.notified.filter { live.contains($0) }
     }
 
+    /// Cikis: durum tamamen sifirlanir ve diske yazilir (spec §5 — Sign Out
+    /// seen.json'i temizler). Yeni hesap eski hesabin gorulmusluk kaydini
+    /// devralmamali.
+    func reset() {
+        state = SeenState()
+        needsNotificationBackfill = false
+        try? save()
+    }
+
     func save() throws {
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
