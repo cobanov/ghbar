@@ -56,11 +56,11 @@ final class MenuBuilder {
             menu.addItem(.separator())
         }
 
-        // Kisayol yok: NSMenu, herhangi bir ogede kisayol varsa TUM menuye
-        // sabit genislikte bir kisayol sutunu ekliyor ve sagda olu bosluk
-        // birakiyor.
-        menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile)))
-        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow)))
+        // Kisayollar geri geldi: alt menu oku sutunu ("7 more…" ve repo
+        // gruplari) sagda zaten yer ayirttigi icin kisayol sutunu ekstra
+        // genislik katmiyor — ayni boslugu islevle dolduruyor.
+        menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: "o"))
+        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: "r"))
 
         if LaunchAtLogin.isAvailable {
             // Tik, NSMenuItem.state yerine gorsel sutununda: state kullanmak
@@ -75,7 +75,7 @@ final class MenuBuilder {
 
         menu.addItem(.separator())
         menu.addItem(disabled("GHBar \(AppVersion.current)"))
-        menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit)))
+        menu.addItem(action("Quit GHBar", #selector(AppDelegate.quit), key: "q"))
         return menu
     }
 
@@ -267,8 +267,8 @@ final class MenuBuilder {
         return item
     }
 
-    private func action(_ title: String, _ selector: Selector) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: selector, keyEquivalent: "")
+    private func action(_ title: String, _ selector: Selector, key: String = "") -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.target = target
         return item
     }
