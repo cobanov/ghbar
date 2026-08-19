@@ -15,6 +15,7 @@ struct ResponseParserTests {
 
         #expect(snap.viewer.login == "alice")
         #expect(snap.viewer.name == "Alice Smith")
+        #expect(snap.viewer.organizations == ["acme"])
         #expect(snap.prs.count == 4)
         #expect(snap.issues.count == 1)   // yazari null olan atildi
         #expect(snap.review.count == 1)
@@ -40,6 +41,18 @@ struct ResponseParserTests {
         """.data(using: .utf8)!
         let snap = try ResponseParser.parse(json)
         #expect(snap.prs.first?.authorIsBot == true)
+    }
+
+    @Test("organizations yoksa bos liste, cokmez") func missingOrganizations() throws {
+        let json = """
+        {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
+          "prs":{"issueCount":0,"nodes":[]},
+          "issues":{"issueCount":0,"nodes":[]},
+          "review":{"issueCount":0,"nodes":[]},
+          "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
+        """.data(using: .utf8)!
+        let snap = try ResponseParser.parse(json)
+        #expect(snap.viewer.organizations == [])
     }
 
     @Test("issueCount 100'e dayaninca kirpilma bayragi kalkar") func truncation() throws {
