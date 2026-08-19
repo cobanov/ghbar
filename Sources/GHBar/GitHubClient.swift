@@ -57,6 +57,8 @@ struct GitHubClient {
                 "prs": queries.prs,
                 "issues": queries.issues,
                 "review": queries.review,
+                "changesRequested": queries.changesRequested,
+                "myPullRequests": queries.myPullRequests,
                 "first": Self.pageSize,
             ],
         ]

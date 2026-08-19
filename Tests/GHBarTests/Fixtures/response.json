@@ -49,6 +49,28 @@
           "repository": { "nameWithOwner": "acme/backend" } }
       ]
     },
+    "changesRequested": {
+      "issueCount": 1,
+      "nodes": [
+        { "number": 88, "title": "Address review feedback", "url": "https://github.com/alice/webapp/pull/88",
+          "createdAt": "2026-08-18T08:00:00Z", "isDraft": false,
+          "author": { "login": "alice", "__typename": "User" },
+          "repository": { "nameWithOwner": "alice/webapp" } }
+      ]
+    },
+    "myPullRequests": {
+      "issueCount": 2,
+      "nodes": [
+        { "number": 88, "title": "Address review feedback", "url": "https://github.com/alice/webapp/pull/88",
+          "createdAt": "2026-08-18T08:00:00Z", "isDraft": false,
+          "author": { "login": "alice", "__typename": "User" },
+          "repository": { "nameWithOwner": "alice/webapp" } },
+        { "number": 91, "title": "Add dark mode", "url": "https://github.com/other/project/pull/91",
+          "createdAt": "2026-08-18T09:00:00Z", "isDraft": false,
+          "author": { "login": "alice", "__typename": "User" },
+          "repository": { "nameWithOwner": "other/project" } }
+      ]
+    },
     "rateLimit": {
       "limit": 5000,
       "remaining": 4911,
