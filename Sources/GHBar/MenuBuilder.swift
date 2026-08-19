@@ -72,7 +72,7 @@ final class MenuBuilder {
         }
 
         let plans = MenuLayout.plan(
-            SectionKind.allCases.compactMap { kind in
+            SectionKind.displayOrder.compactMap { kind in
                 input.sections.first { $0.kind == kind }
             },
             workRowBudget: input.workRowBudget,
@@ -88,7 +88,7 @@ final class MenuBuilder {
             // bosken menu bes baslik ve bes gri satirdan ibaret kaliyor ve
             // bozuk gorunuyordu. Ayar acikken kullanicinin sectigi her bolum
             // "None" satiriyla gorunur kalir.
-            let kinds = SectionKind.allCases.filter { kind in
+            let kinds = SectionKind.displayOrder.filter { kind in
                 input.showEmptySections
                     ? input.visibleSections.contains(kind)
                     : input.sections.contains { $0.kind == kind }

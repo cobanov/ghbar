@@ -177,6 +177,23 @@ struct FilteringTests {
         #expect(sections.flatMap(\.items).map(\.number) == [3])
     }
 
+    @Test("bolumler aciliyet sirasiyla doner") func urgencyOrder() {
+        let snap = snapshot(
+            prs: [makeItem(1)],
+            issues: [makeItem(2, kind: .issue)],
+            review: [makeItem(3)],
+            changesRequested: [makeItem(4)],
+            myPullRequests: [makeItem(5)]
+        )
+        #expect(Filtering.sections(from: snap, settings: .default).map(\.kind)
+            == [.changesRequested, .reviewRequested, .pullRequests, .issues, .myPullRequests])
+    }
+
+    @Test("displayOrder butun bolumleri kapsar") func displayOrderIsComplete() {
+        #expect(Set(SectionKind.displayOrder) == Set(SectionKind.allCases))
+        #expect(SectionKind.displayOrder.count == SectionKind.allCases.count)
+    }
+
     @Test("kirpilma bayragi bolume tasinir") func carriesTruncation() {
         let snap = snapshot(prs: [makeItem(1)], truncated: [.pullRequests])
         #expect(Filtering.sections(from: snap, settings: .default).first?.truncated == true)

@@ -49,8 +49,17 @@ enum SectionKind: String, Sendable, Hashable, CaseIterable {
     case issues
     case reviewRequested
     case changesRequested
-    /// Sirada en sonda: eyleme cagiran bolumler ustte kalsin.
     case myPullRequests
+
+    /// Menudeki sira ve ayni PR birden fazla aramada ciktiginda hangi bolumun
+    /// kazanacagi. Tek liste: ikisi ayri tutuldugunda menu, kodun en guclu
+    /// saydigi sinyali dorduncu sirada gosteriyordu.
+    ///
+    /// `allCases` sirasi degistirilmiyor: ham degerler `representedObject`
+    /// icinde tasiniyor ve `AppDelegate.markSectionSeen` ile eslesiyor.
+    static let displayOrder: [SectionKind] = [
+        .changesRequested, .reviewRequested, .pullRequests, .issues, .myPullRequests,
+    ]
 
     var title: String {
         switch self {

@@ -3,32 +3,27 @@ import Foundation
 enum Filtering {
 
     static func sections(from snapshot: Snapshot, settings: Settings) -> [MenuSection] {
-        // Ayni PR birden fazla aramada cikabilir; en guclu is sinyalini veren
-        // bolumde kalir. Siralama: Changes Requested > Review Requested >
-        // Pull Requests > My Pull Requests.
+        let searches: [SectionKind: [Item]] = [
+            .changesRequested: snapshot.changesRequested,
+            .reviewRequested: snapshot.review,
+            .pullRequests: snapshot.prs,
+            .issues: snapshot.issues,
+            .myPullRequests: snapshot.myPullRequests,
+        ]
+
+        // Ayni PR birden fazla aramada cikabilir; onceligi `displayOrder`
+        // veriyor, yani en guclu sinyal hem once geliyor hem de kopyalari
+        // eliyor.
         var claimed: Set<String> = []
-        func take(_ items: [Item]) -> [Item] {
-            let kept = clean(items, settings: settings).filter { !claimed.contains($0.url) }
+        func take(_ kind: SectionKind) -> [Item] {
+            let kept = clean(searches[kind] ?? [], settings: settings)
+                .filter { !claimed.contains($0.url) }
             claimed.formUnion(kept.map(\.url))
             return kept
         }
 
-        let changesRequested = take(snapshot.changesRequested)
-        let review = take(snapshot.review)
-        let prs = take(snapshot.prs)
-        let mine = take(snapshot.myPullRequests)
-        // Issue'lar PR aramalariyla kesismiyor; sirasi onemsiz.
-        let issues = clean(snapshot.issues, settings: settings)
-
-        let candidates: [(SectionKind, [Item])] = [
-            (.pullRequests, prs),
-            (.issues, issues),
-            (.reviewRequested, review),
-            (.changesRequested, changesRequested),
-            (.myPullRequests, mine),
-        ]
-
-        return candidates.compactMap { kind, items in
+        return SectionKind.displayOrder.compactMap { kind in
+            let items = take(kind)
             guard settings.visibleSections.contains(kind) else { return nil }
             guard !items.isEmpty else { return nil }   // bos bolum hic gosterilmez
             return MenuSection(
