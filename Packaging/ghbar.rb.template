@@ -7,7 +7,7 @@ cask "ghbar" do
   desc "Pull requests and issues from your repositories, in the menu bar"
   homepage "https://ghbar.cobanov.dev"
 
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "GHBar.app"
 
