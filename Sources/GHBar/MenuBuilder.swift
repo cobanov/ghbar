@@ -197,6 +197,9 @@ final class MenuBuilder {
         let more = NSMenuItem(title: "\(plan.overflow.count) more…",
                               action: nil, keyEquivalent: "")
         more.image = Icons.blank   // ikonlu satirlarla ayni hizada baslasin
+        more.setAccessibilityLabel(
+            "\(plan.overflow.count) more in \(plan.section.kind.title)"
+        )
         let submenu = NSMenu()
         for row in plan.overflow {
             submenu.addItem(item(for: row, input: input))
@@ -239,6 +242,9 @@ final class MenuBuilder {
             let menuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
             menuItem.attributedTitle = text
             menuItem.image = Icons.folder(unseen: unseen)
+            menuItem.setAccessibilityLabel(
+                "\(name), \(items.count) items, \(unseen ? "unread" : "read")"
+            )
             let submenu = NSMenu()
             for entry in items { submenu.addItem(itemRow(entry, input: input)) }
             menuItem.submenu = submenu
@@ -305,7 +311,26 @@ final class MenuBuilder {
         menuItem.image = Icons.forItem(entry, seen: seen)
         // Kirpilan basligin tam hali fare uzerine gelince gorunur.
         menuItem.toolTip = "\(entry.title)\n@\(entry.authorLogin)"
+        // Okunmamislik yalnizca ikonun renginde tasiniyordu; VoiceOver ve
+        // renk gormeyen kullanici ayirt edemiyordu. Sekme durakli
+        // attributedTitle da sesli okundugunda anlasilmiyor.
+        menuItem.setAccessibilityLabel([
+            "\(name) number \(entry.number)",
+            Self.spokenKind(entry),
+            entry.title,
+            "by \(entry.authorLogin)",
+            Formatting.spokenAge(of: entry.createdAt, now: input.now),
+            seen ? "read" : "unread",
+        ].joined(separator: ", "))
         return menuItem
+    }
+
+    private static func spokenKind(_ entry: Item) -> String {
+        switch (entry.kind, entry.isDraft) {
+        case (.pullRequest, true):  "draft pull request"
+        case (.pullRequest, false): "pull request"
+        case (.issue, _):           "issue"
+        }
     }
 
     // MARK: - Diger satirlar

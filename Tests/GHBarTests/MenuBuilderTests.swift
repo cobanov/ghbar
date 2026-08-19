@@ -206,6 +206,24 @@ struct MenuBuilderTests {
                                           rateLimitVisibility: .never)))
     }
 
+    @Test("oge satiri okunmamislik bilgisini metinle de tasir") @MainActor
+    func itemRowHasAccessibilityLabel() {
+        let unread = makeMenu(sections: [section(.pullRequests, numbers: [55])])
+            .items.compactMap { $0.accessibilityLabel() }
+            .first { $0.contains("number 55") }
+        #expect(unread?.contains("unread") == true)
+        #expect(unread?.contains("pull request") == true)
+        #expect(unread?.contains("Title 55") == true)
+        #expect(unread?.contains("by bob") == true)
+
+        let read = makeMenu(sections: [section(.pullRequests, numbers: [55])],
+                            isSeen: { _ in true })
+            .items.compactMap { $0.accessibilityLabel() }
+            .first { $0.contains("number 55") }
+        #expect(read?.hasSuffix("read") == true)
+        #expect(read?.contains("unread") == false)
+    }
+
     @Test("Launch at Login menude degil, ayarlarda") @MainActor
     func launchAtLoginNotInMenu() {
         #expect(!makeMenu(sections: []).items.map(\.title).contains("Launch at Login"))
