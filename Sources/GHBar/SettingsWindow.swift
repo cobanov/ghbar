@@ -27,15 +27,55 @@ final class SettingsController {
 
 struct SettingsView: View {
     var onSignOut: () -> Void
+    @State private var selectedTab = Tab.accounts
+
+    private enum Tab: String, CaseIterable {
+        case accounts = "Accounts"
+        case repositories = "Repositories"
+        case general = "General"
+
+        var symbol: String {
+            switch self {
+            case .accounts: "person.crop.circle"
+            case .repositories: "folder"
+            case .general: "gearshape"
+            }
+        }
+    }
 
     var body: some View {
-        TabView {
-            AccountsPane(onSignOut: onSignOut)
-                .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
-            RepositoriesPane()
-                .tabItem { Label("Repositories", systemImage: "folder") }
-            GeneralPane()
-                .tabItem { Label("General", systemImage: "gearshape") }
+        VStack(spacing: 0) {
+            HStack(spacing: 4) {
+                ForEach(Tab.allCases, id: \.self) { tab in
+                    Button {
+                        selectedTab = tab
+                    } label: {
+                        Label(tab.rawValue, systemImage: tab.symbol)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .foregroundColor(selectedTab == tab ? .white : .primary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(selectedTab == tab ? Color.accentColor : .clear)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider()
+
+            switch selectedTab {
+            case .accounts:
+                AccountsPane(onSignOut: onSignOut)
+            case .repositories:
+                RepositoriesPane()
+            case .general:
+                GeneralPane()
+            }
         }
         .frame(width: 440, height: 460)
     }
