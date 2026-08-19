@@ -9,7 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let notifier = Notifier()
     private let settings = Settings.default
 
-    private var sections: [Section] = []
+    private var sections: [MenuSection] = []
     private var viewer: Viewer?
     private var rateLimit: RateLimit?
     private var errors: [AppError] = []

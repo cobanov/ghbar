@@ -70,7 +70,7 @@ enum Row: Sendable, Hashable {
     }
 }
 
-struct Section: Sendable, Hashable {
+struct MenuSection: Sendable, Hashable {
     let kind: SectionKind
     let rows: [Row]
     let truncated: Bool

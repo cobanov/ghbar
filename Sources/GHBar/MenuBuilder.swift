@@ -12,7 +12,7 @@ final class MenuBuilder {
 
     struct Input {
         var viewer: Viewer?
-        var sections: [Section]
+        var sections: [MenuSection]
         var rateLimit: RateLimit?
         var errors: [AppError]
         var lastRefresh: Date?
@@ -87,7 +87,7 @@ final class MenuBuilder {
 
     // MARK: - Bolum satirlari
 
-    private func addRows(of section: Section, to menu: NSMenu, input: Input) {
+    private func addRows(of section: MenuSection, to menu: NSMenu, input: Input) {
         let visible = section.rows.prefix(input.maxRowsPerSection)
         for row in visible {
             menu.addItem(item(for: row, input: input))
@@ -248,7 +248,7 @@ final class MenuBuilder {
         return item
     }
 
-    private func markAllSeenItem(for section: Section) -> NSMenuItem {
+    private func markAllSeenItem(for section: MenuSection) -> NSMenuItem {
         let item = NSMenuItem(
             title: "Mark All as Seen",
             action: #selector(AppDelegate.markSectionSeen(_:)),

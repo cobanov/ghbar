@@ -51,16 +51,7 @@ private struct AccountsPane: View {
 
     var body: some View {
         Form {
-            Section {
-                if let login = signedInLogin {
-                    LabeledContent("Signed in as", value: "@\(login)")
-                    Button("Sign Out", role: .destructive) { onSignOut() }
-                } else {
-                    // Direct varyantta gh token'iyla calisiyor olabiliriz.
-                    Text("Using the GitHub CLI token (gh).")
-                        .foregroundStyle(.secondary)
-                }
-            }
+            sessionSection
             Section("Watched accounts") {
                 ForEach(accounts, id: \.self) { account in
                     HStack {
@@ -85,6 +76,20 @@ private struct AccountsPane: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private var sessionSection: some View {
+        Section {
+            if let login = signedInLogin {
+                LabeledContent("Signed in as", value: "@\(login)")
+                Button("Sign Out", role: .destructive) { onSignOut() }
+            } else {
+                // Direct varyantta gh token'iyla calisiyor olabiliriz.
+                Text("Using the GitHub CLI token (gh).")
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     private func add() {

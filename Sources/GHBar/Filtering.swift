@@ -2,7 +2,7 @@ import Foundation
 
 enum Filtering {
 
-    static func sections(from snapshot: Snapshot, settings: Settings) -> [Section] {
+    static func sections(from snapshot: Snapshot, settings: Settings) -> [MenuSection] {
         // Review istenmis olmak daha guclu bir sinyal: ayni PR iki aramada da
         // ciktiysa yalniz Review Requested'da gosterilir.
         let review = clean(snapshot.review, settings: settings)
@@ -20,7 +20,7 @@ enum Filtering {
 
         return candidates.compactMap { kind, items in
             guard !items.isEmpty else { return nil }   // bos bolum hic gosterilmez
-            return Section(
+            return MenuSection(
                 kind: kind,
                 rows: rows(for: items, settings: settings),
                 truncated: snapshot.truncated.contains(kind)
