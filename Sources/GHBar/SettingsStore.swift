@@ -5,10 +5,21 @@ import Defaults
 /// UserDefaults alan adi olur; degistirmek kullanicinin ayarini sifirlar.
 extension Defaults.Keys {
     static let accounts = Key<[String]>("accounts", default: ["@me"])
+    static let organizations = Key<[String]>("organizations", default: [])
+    /// Uyelik listesi; Ayarlar ve menu secicisi bundan dolar. Her yenilemede
+    /// `viewer.organizations` ile guncellenir.
+    static let knownOrganizations = Key<[String]>("knownOrganizations", default: [])
     static let repoList = Key<[String]>("repoList", default: [])
     static let repoListIsAllowList = Key<Bool>("repoListIsAllowList", default: false)
     static let showBots = Key<Bool>("showBots", default: false)
     static let showDrafts = Key<Bool>("showDrafts", default: true)
+    static let showPullRequests = Key<Bool>("showPullRequests", default: true)
+    static let showIssues = Key<Bool>("showIssues", default: true)
+    static let showReviewRequested = Key<Bool>("showReviewRequested", default: true)
+    static let showChangesRequested = Key<Bool>("showChangesRequested", default: true)
+    static let showMyPullRequests = Key<Bool>("showMyPullRequests", default: true)
+    static let showEmptySections = Key<Bool>("showEmptySections", default: false)
+    static let menuRowBudget = Key<Int>("menuRowBudget", default: 24)
     static let refreshMinutes = Key<Int>("refreshMinutes", default: 5)
     static let repoGroupThreshold = Key<Int>("repoGroupThreshold", default: 3)
     static let notificationsEnabled = Key<Bool>("notificationsEnabled", default: true)
@@ -29,10 +40,20 @@ extension Settings {
             !$0.trimmingCharacters(in: .whitespaces).isEmpty
         }
         settings.accounts = accounts.isEmpty ? ["@me"] : accounts
+        settings.organizations = Defaults[.organizations].filter {
+            !$0.trimmingCharacters(in: .whitespaces).isEmpty
+        }
         settings.repoList = Defaults[.repoList]
         settings.repoListIsAllowList = Defaults[.repoListIsAllowList]
         settings.showBots = Defaults[.showBots]
         settings.showDrafts = Defaults[.showDrafts]
+        settings.showPullRequests = Defaults[.showPullRequests]
+        settings.showIssues = Defaults[.showIssues]
+        settings.showReviewRequested = Defaults[.showReviewRequested]
+        settings.showChangesRequested = Defaults[.showChangesRequested]
+        settings.showMyPullRequests = Defaults[.showMyPullRequests]
+        settings.showEmptySections = Defaults[.showEmptySections]
+        settings.menuRowBudget = max(8, Defaults[.menuRowBudget])
         settings.repoGroupThreshold = Defaults[.repoGroupThreshold]
         return settings
     }
