@@ -52,19 +52,32 @@ final class MenuBuilder {
             menu.addItem(.separator())
         }
 
-        for section in input.sections {
-            menu.addItem(.sectionHeader(title: section.kind.title))
-            addRows(of: section, to: menu, input: input)
-            if section.truncated {
-                menu.addItem(disabled("Showing first 100 — narrow your filters"))
+        if input.errors.isEmpty && !input.isSignedOut {
+            for kind in SectionKind.allCases {
+                menu.addItem(.sectionHeader(title: kind.title))
+                if let section = input.sections.first(where: { $0.kind == kind }) {
+                    addRows(of: section, to: menu, input: input)
+                    if section.truncated {
+                        menu.addItem(disabled("Showing first 100 — narrow your filters"))
+                    }
+                    menu.addItem(markAllSeenItem(for: section))
+                } else {
+                    menu.addItem(disabled("None"))
+                }
+                menu.addItem(.separator())
             }
-            menu.addItem(markAllSeenItem(for: section))
-            menu.addItem(.separator())
-        }
-
-        if input.sections.isEmpty && input.errors.isEmpty && !input.isSignedOut {
-            menu.addItem(disabled("Nothing waiting"))
-            menu.addItem(.separator())
+        } else {
+            // Hata sirasinda eksik bolume "None" demek yaniltici olur:
+            // GitHub'a bakamadik, gercekten bos oldugunu bilmiyoruz.
+            for section in input.sections {
+                menu.addItem(.sectionHeader(title: section.kind.title))
+                addRows(of: section, to: menu, input: input)
+                if section.truncated {
+                    menu.addItem(disabled("Showing first 100 — narrow your filters"))
+                }
+                menu.addItem(markAllSeenItem(for: section))
+                menu.addItem(.separator())
+            }
         }
 
         if let rateLimit = input.rateLimit {
