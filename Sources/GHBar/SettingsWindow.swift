@@ -37,7 +37,7 @@ struct SettingsView: View {
             GeneralPane()
                 .tabItem { Label("General", systemImage: "gearshape") }
         }
-        .frame(width: 440, height: 380)
+        .frame(width: 440, height: 460)
     }
 }
 
@@ -47,7 +47,13 @@ struct AccountsPane: View {
     var onSignOut: () -> Void
     @Default(.signedInLogin) private var signedInLogin
     @Default(.accounts) private var accounts
+    @Default(.organizations) private var organizations
+    @Default(.knownOrganizations) private var knownOrganizations
     @State private var newAccount = ""
+
+    private var organizationRows: [String] {
+        Array(Set(knownOrganizations).union(organizations)).sorted()
+    }
 
     var body: some View {
         Form {
@@ -66,16 +72,42 @@ struct AccountsPane: View {
                     }
                 }
                 HStack {
-                    TextField("user or org", text: $newAccount)
+                    TextField("username", text: $newAccount)
                         .onSubmit(add)
                     Button("Add", action: add)
                         .disabled(newAccount.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                Text("@me is you. Add organizations to watch their repositories too.")
+                Text("@me is you. Personal repositories stay on this list.")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+            Section("Organizations") {
+                if organizationRows.isEmpty {
+                    Text("Organizations you belong to appear here after a refresh.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(organizationRows, id: \.self) { org in
+                    Toggle(isOn: organizationBinding(org)) {
+                        Text(org)
+                    }
+                }
+                Text("Checked organizations replace personal repositories in the search.")
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func organizationBinding(_ org: String) -> Binding<Bool> {
+        Binding(
+            get: { organizations.contains(org) },
+            set: { on in
+                if on {
+                    if !organizations.contains(org) { organizations.append(org) }
+                } else {
+                    organizations.removeAll { $0 == org }
+                }
+            }
+        )
     }
 
     @ViewBuilder

@@ -5,6 +5,10 @@ import Defaults
 /// UserDefaults alan adi olur; degistirmek kullanicinin ayarini sifirlar.
 extension Defaults.Keys {
     static let accounts = Key<[String]>("accounts", default: ["@me"])
+    static let organizations = Key<[String]>("organizations", default: [])
+    /// Uyelik listesi; Ayarlar ve menu secicisi bundan dolar. Her yenilemede
+    /// `viewer.organizations` ile guncellenir.
+    static let knownOrganizations = Key<[String]>("knownOrganizations", default: [])
     static let repoList = Key<[String]>("repoList", default: [])
     static let repoListIsAllowList = Key<Bool>("repoListIsAllowList", default: false)
     static let showBots = Key<Bool>("showBots", default: false)
@@ -29,6 +33,9 @@ extension Settings {
             !$0.trimmingCharacters(in: .whitespaces).isEmpty
         }
         settings.accounts = accounts.isEmpty ? ["@me"] : accounts
+        settings.organizations = Defaults[.organizations].filter {
+            !$0.trimmingCharacters(in: .whitespaces).isEmpty
+        }
         settings.repoList = Defaults[.repoList]
         settings.repoListIsAllowList = Defaults[.repoListIsAllowList]
         settings.showBots = Defaults[.showBots]
