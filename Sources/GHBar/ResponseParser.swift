@@ -55,6 +55,11 @@ enum ResponseParser {
         let prs    = try search("prs",    kind: .pullRequest, section: .pullRequests)
         let issues = try search("issues", kind: .issue,       section: .issues)
         let review = try search("review", kind: .pullRequest, section: .reviewRequested)
+        let changesRequested = try search(
+            "changesRequested",
+            kind: .pullRequest,
+            section: .changesRequested
+        )
 
         guard let limitObject = payload["rateLimit"] as? [String: Any],
               let limit = limitObject["limit"] as? Int,
@@ -69,6 +74,7 @@ enum ResponseParser {
             prs: prs,
             issues: issues,
             review: review,
+            changesRequested: changesRequested,
             rateLimit: RateLimit(limit: limit, remaining: remaining, resetAt: resetAt),
             truncated: truncated
         )

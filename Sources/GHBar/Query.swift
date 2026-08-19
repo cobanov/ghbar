@@ -4,6 +4,7 @@ struct Queries: Sendable, Equatable {
     let prs: String
     let issues: String
     let review: String
+    let changesRequested: String
     /// Uzunluk tavani yuzunden bazi filtreler dusuruldu.
     let filtersDropped: Bool
     /// Beyaz liste acik ama bos — hicbir sey gosterilmemeli.
@@ -61,10 +62,22 @@ enum Query {
         )
         dropped = dropped || reviewDropped
 
+        // Kullanicinin kendi PR'lari normal PR aramasinda -author:@me ile
+        // elenir. Degisiklik isteyen review, ayri ve daha guclu bir is sinyali.
+        let changesScope = settings.repoListIsAllowList
+            ? repos.map { "repo:\($0)" }
+            : settings.organizations.map { "org:\($0)" }
+        let (changesParts, changesDropped) = fit(
+            ["is:pr", "is:open", "author:@me", "review:changes_requested"] + changesScope,
+            exclusions: exclusions
+        )
+        dropped = dropped || changesDropped
+
         return Queries(
             prs:    assemble(["is:pr", "is:open"]),
             issues: assemble(["is:issue", "is:open"]),
             review: reviewParts.joined(separator: " "),
+            changesRequested: changesParts.joined(separator: " "),
             filtersDropped: dropped,
             allowListEmpty: allowListEmpty
         )
@@ -101,13 +114,19 @@ enum Query {
         }
     }
 
-    /// Tek istekte uc arama + profil + kota. Olculdu: toplam maliyeti 1 puan.
+    /// Tek istekte dort arama + profil + kota.
     ///
     /// Ayri bir .graphql dosyasi yerine gomulu metin: Asama 2'de .app paketi
     /// elle kurulacak ve Bundle.module kaynak paketinin de kopyalanmasini
     /// gerektirecekti. Gomulu metin bu ariza yolunu ortadan kaldiriyor.
     static let document = """
-    query($prs: String!, $issues: String!, $review: String!, $first: Int!) {
+    query(
+      $prs: String!,
+      $issues: String!,
+      $review: String!,
+      $changesRequested: String!,
+      $first: Int!
+    ) {
       viewer {
         login name avatarUrl
         organizations(first: 50) { nodes { login } }
@@ -129,6 +148,14 @@ enum Query {
         } }
       }
       review: search(query: $review, type: ISSUE, first: $first) {
+        issueCount
+        nodes { ... on PullRequest {
+          number title url createdAt isDraft
+          author { login __typename }
+          repository { nameWithOwner }
+        } }
+      }
+      changesRequested: search(query: $changesRequested, type: ISSUE, first: $first) {
         issueCount
         nodes { ... on PullRequest {
           number title url createdAt isDraft
