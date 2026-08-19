@@ -18,6 +18,8 @@ final class MenuBuilder {
         var lastRefresh: Date?
         var isSignedOut: Bool
         var showOwner: Bool
+        var knownOrganizations: [String] = []
+        var selectedOrganizations: [String] = []
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
         var now: Date
@@ -34,6 +36,9 @@ final class MenuBuilder {
             menu.addItem(.separator())
         } else if let viewer = input.viewer {
             menu.addItem(profileItem(viewer))
+            if !input.knownOrganizations.isEmpty {
+                menu.addItem(organizationsItem(input))
+            }
             menu.addItem(.separator())
         }
 
@@ -212,6 +217,29 @@ final class MenuBuilder {
     }
 
     // MARK: - Diger satirlar
+
+    private func organizationsItem(_ input: Input) -> NSMenuItem {
+        let selected = Set(input.selectedOrganizations)
+        let parent = NSMenuItem(title: "Organizations", action: nil, keyEquivalent: "")
+        parent.image = Icons.symbol("building.2", color: .secondaryLabelColor)
+        let submenu = NSMenu()
+        for org in input.knownOrganizations.sorted() {
+            let row = NSMenuItem(
+                title: org,
+                action: #selector(AppDelegate.toggleOrganization(_:)),
+                keyEquivalent: ""
+            )
+            row.target = target
+            row.representedObject = org
+            // state sutunu butun satirlari kaydirir; tik gorsel sutununda.
+            row.image = selected.contains(org)
+                ? Icons.symbol("checkmark", color: .labelColor)
+                : Icons.blank
+            submenu.addItem(row)
+        }
+        parent.submenu = submenu
+        return parent
+    }
 
     private func profileItem(_ viewer: Viewer) -> NSMenuItem {
         let text = NSMutableAttributedString(

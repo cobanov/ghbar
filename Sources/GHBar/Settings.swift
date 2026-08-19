@@ -4,6 +4,10 @@ import Foundation
 /// alan adlari o zaman degismeyecek sekilde secildi.
 struct Settings: Sendable, Equatable {
     var accounts: [String] = ["@me"]
+    /// Secili organizasyonlar. Doluysa arama `org:` kullanir; `user:` ile
+    /// ayni sorguda AND olur ve sonuc bos kalirdi, bu yuzden hesaplarin
+    /// yerine gecer.
+    var organizations: [String] = []
     var repoList: [String] = []
     var repoListIsAllowList: Bool = false
     var showBots: Bool = false

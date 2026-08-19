@@ -28,6 +28,7 @@ struct Viewer: Sendable, Hashable {
     let login: String
     let name: String?
     let avatarURL: String
+    var organizations: [String] = []
 
     var displayName: String { name ?? login }
     var profileURL: String { "https://github.com/\(login)" }
