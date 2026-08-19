@@ -224,6 +224,20 @@ struct MenuBuilderTests {
         #expect(read?.contains("unread") == false)
     }
 
+    @Test("organizasyon satiri aktif kapsami sagda gosterir") @MainActor
+    func organizationRowShowsActiveScope() {
+        func summary(_ selected: [String]) -> String? {
+            makeMenu(sections: [], knownOrganizations: ["acme", "widgets", "zeta"],
+                     selectedOrganizations: selected)
+                .items.compactMap { $0.accessibilityLabel() }
+                .first { $0.hasPrefix("Organizations, ") }
+        }
+
+        #expect(summary([]) == "Organizations, All")
+        #expect(summary(["acme"]) == "Organizations, acme")
+        #expect(summary(["widgets", "acme", "zeta"]) == "Organizations, acme +2")
+    }
+
     @Test("Launch at Login menude degil, ayarlarda") @MainActor
     func launchAtLoginNotInMenu() {
         #expect(!makeMenu(sections: []).items.map(\.title).contains("Launch at Login"))
@@ -242,6 +256,7 @@ struct MenuBuilderTests {
         visibleSections: Set<SectionKind> = Set(SectionKind.allCases),
         showEmptySections: Bool = false,
         isRefreshing: Bool = false,
+        knownOrganizations: [String] = [],
         selectedOrganizations: [String] = [],
         repositoryFilterActive: Bool = false,
         isSeen: @escaping (String) -> Bool = { _ in false },
@@ -257,7 +272,7 @@ struct MenuBuilderTests {
             isSignedOut: false,
             isRefreshing: isRefreshing,
             showOwner: false,
-            knownOrganizations: [],
+            knownOrganizations: knownOrganizations,
             selectedOrganizations: selectedOrganizations,
             repositoryFilterActive: repositoryFilterActive,
             visibleSections: visibleSections,

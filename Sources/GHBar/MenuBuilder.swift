@@ -339,6 +339,23 @@ final class MenuBuilder {
         let selected = Set(input.selectedOrganizations)
         let parent = NSMenuItem(title: "Organizations", action: nil, keyEquivalent: "")
         parent.image = Icons.symbol("building.2", color: .secondaryLabelColor)
+
+        // Aktif kapsam satirin sagina yaziliyor: bos menunun neden bos
+        // oldugu, alt menuyu acmadan once okunabilsin.
+        let summary = organizationSummary(input)
+        let text = NSMutableAttributedString(
+            string: "Organizations",
+            attributes: [.font: MenuFont.label, .foregroundColor: NSColor.labelColor]
+        )
+        text.append(NSAttributedString(
+            string: "\t\(summary)",
+            attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
+        ))
+        text.addAttribute(.paragraphStyle, value: MenuFont.rowStyle,
+                          range: NSRange(location: 0, length: text.length))
+        parent.attributedTitle = text
+        parent.setAccessibilityLabel("Organizations, \(summary)")
+
         let submenu = NSMenu()
         for org in input.knownOrganizations.sorted() {
             let row = NSMenuItem(
@@ -356,6 +373,15 @@ final class MenuBuilder {
         }
         parent.submenu = submenu
         return parent
+    }
+
+    private func organizationSummary(_ input: Input) -> String {
+        let selected = input.selectedOrganizations.sorted()
+        guard let first = selected.first else { return "All" }
+        let name = TextFit.truncate(first, font: MenuFont.detail,
+                                    maxWidth: MenuFont.rowWidth * 0.35)
+        let extra = selected.count - 1
+        return extra > 0 ? "\(name) +\(extra)" : name
     }
 
     private func profileItem(_ viewer: Viewer) -> NSMenuItem {
