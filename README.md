@@ -49,16 +49,11 @@ opens without a Gatekeeper warning.
 ## Requirements
 
 - **macOS 14** (Sonoma) or newer
-- **[GitHub CLI](https://cli.github.com)** (`gh`), signed in
 
-GHBar reads your token from `gh auth token`, so there is no separate sign-in and
-no password to hand over. If you don't have it:
-
-```bash
-brew install gh && gh auth login
-```
-
-> Built-in sign-in without `gh` is coming in a later release.
+That's it. GHBar signs in with GitHub's device flow — no account to create, no
+password to hand over. If you already use the
+[GitHub CLI](https://cli.github.com) (`gh`), GHBar picks its token up
+automatically and you never see a sign-in screen at all.
 
 ---
 

@@ -207,8 +207,9 @@ is:pr    is:open review-requested:@me     <span class="c">→ Review Requested</
       <article class="card glass">
         <h3>No account to create</h3>
         <p>
-          GHBar reads your token from <code>gh auth token</code>. There is no
-          sign-up, no password to hand over and no server in the middle.
+          Sign in with GitHub's device flow, or let GHBar borrow your
+          <code>gh</code> token automatically. No sign-up, no password to hand
+          over, no server in the middle.
         </p>
       </article>
       <article class="card glass">
@@ -255,14 +256,11 @@ is:pr    is:open review-requested:@me     <span class="c">→ Review Requested</
     <h3>Requirements</h3>
     <ul>
       <li><strong>macOS 14</strong> (Sonoma) or newer</li>
-      <li>
-        <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>), signed in —
-        <code>brew install gh &amp;&amp; gh auth login</code>
-      </li>
     </ul>
     <p class="fineprint">
-      GHBar borrows the token <code>gh</code> already holds, so there is no second
-      sign-in. Built-in sign-in without <code>gh</code> is coming in a later release.
+      GHBar signs in with GitHub's device flow — no account to create. Already use
+      the <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>)? GHBar
+      borrows its token automatically and you never see a sign-in screen at all.
     </p>
   </div>
 </section>
