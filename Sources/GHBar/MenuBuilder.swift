@@ -15,6 +15,7 @@ final class MenuBuilder {
         var sections: [Section]
         var rateLimit: RateLimit?
         var errors: [AppError]
+        var lastRefresh: Date?
         var showOwner: Bool
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
@@ -32,6 +33,11 @@ final class MenuBuilder {
 
         if !input.errors.isEmpty {
             for error in input.errors { menu.addItem(errorItem(error)) }
+            // Eski veri gosterilirken ne kadar eski oldugu soylenmeli; yoksa
+            // kullanici bayat listeyi guncel sanir.
+            if let last = input.lastRefresh {
+                menu.addItem(disabled("Last updated \(Self.clock.string(from: last))"))
+            }
             menu.addItem(.separator())
         }
 
@@ -267,6 +273,13 @@ final class MenuBuilder {
         return item
     }
 
+    private static let clock: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
     private func action(_ title: String, _ selector: Selector, key: String = "") -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
         item.target = target
@@ -331,9 +344,17 @@ enum Icons {
         return tinted(symbols, color)
     }
 
+    /// Durum cubugu ikonu template: rengi macOS verir, menu aciliip buton
+    /// vurgulandiginda da sistem ikonlari gibi dogru cevrilir. Paletli surum
+    /// vurgulu durumda renk cevirmiyordu.
     static func statusBar() -> NSImage? {
-        tinted(["arrow.trianglehead.pull", "arrow.triangle.pull", "arrow.triangle.branch"],
-               .labelColor)
+        for name in ["arrow.trianglehead.pull", "arrow.triangle.pull", "arrow.triangle.branch"] {
+            if let image = NSImage(systemSymbolName: name, accessibilityDescription: "GHBar") {
+                image.isTemplate = true
+                return image
+            }
+        }
+        return nil
     }
 
     static func folder(unseen: Bool) -> NSImage? {

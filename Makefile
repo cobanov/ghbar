@@ -155,6 +155,9 @@ tap:
 # --- Kurulum ------------------------------------------------------------
 
 install: bundle
+	@# Yerel kurulum ad-hoc imzalanir: paket muhru olmadan bildirimlerin
+	@# istedigi kararli kod kimligi olusmaz (linker yalnizca ikiliyi imzalar).
+	codesign --force --deep --sign - $(APP_BUNDLE)
 	@pkill -x $(APP) 2>/dev/null || true
 	@rm -rf /Applications/$(APP).app
 	cp -R $(APP_BUNDLE) /Applications/

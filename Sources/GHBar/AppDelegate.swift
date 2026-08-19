@@ -32,6 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menuBuilder = MenuBuilder(target: self)
         notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
+        // performClick menu cubugundaki dugmeye programatik tiklama — menuyu acar.
+        notifier.onOpenSummary = { [weak self] in self?.statusItem.button?.performClick(nil) }
         notifier.start()
         rebuildMenu()
 
@@ -116,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             sections: sections,
             rateLimit: rateLimit,
             errors: errors,
+            lastRefresh: lastRefresh,
             showOwner: settings.accounts.count > 1,
             maxRowsPerSection: settings.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },

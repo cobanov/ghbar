@@ -43,6 +43,9 @@ struct GitHubClient {
 
     func makeRequest(_ queries: Queries) throws -> URLRequest {
         var request = URLRequest(url: Self.endpoint)
+        // Varsayilan 60 sn cok uzun: takili bir baglanti yenilemeyi bir dakika
+        // kilitliyor (isRefreshing true kaldigi icin elle Refresh de calismiyor).
+        request.timeoutInterval = 15
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -17,6 +17,7 @@ struct GitHubClientTests {
         #expect(request.url?.absoluteString == "https://api.github.com/graphql")
         #expect(request.httpMethod == "POST")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer secret-token")
+        #expect(request.timeoutInterval == 15)
 
         let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
         let variables = body["variables"] as! [String: Any]

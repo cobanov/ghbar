@@ -14,6 +14,10 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     /// AppDelegate'in isi.
     var onOpen: ((String) -> Void)?
 
+    /// Ozet bildirimine ("12 new items") tiklandiginda cagrilir; tek bir URL
+    /// olmadigi icin dogru davranis menuyu acmak.
+    var onOpenSummary: (() -> Void)?
+
     private var authorized = false
 
     /// Paket kimligi yoksa (swift run) bildirim altyapisi hic kurulmaz.
@@ -44,7 +48,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
                 id: "summary-\(items.count)-\(items[0].id)",
                 title: "\(items.count) new items",
                 body: "Your repositories have \(items.count) new pull requests and issues.",
-                url: nil
+                url: nil,
+                isSummary: true
             )
             return
         }
@@ -62,12 +67,13 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Private
 
-    private func post(id: String, title: String, body: String, url: String?) {
+    private func post(id: String, title: String, body: String, url: String?, isSummary: Bool = false) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
         if let url { content.userInfo = ["url": url] }
+        if isSummary { content.userInfo = ["summary": true] }
 
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: id, content: content, trigger: nil)
@@ -92,6 +98,12 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse
     ) async {
         let info = response.notification.request.content.userInfo
+        if info["summary"] as? Bool == true {
+            // Eski surumde ozet bildirimine tiklamak sessizce hicbir sey
+            // yapmiyordu — URL olmadigi icin guard'dan donuyordu.
+            await MainActor.run { self.onOpenSummary?() }
+            return
+        }
         guard let url = info["url"] as? String else { return }
         await MainActor.run { self.onOpen?(url) }
     }

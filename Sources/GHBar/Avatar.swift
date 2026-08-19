@@ -47,16 +47,15 @@ enum Avatar {
 
     /// GitHub avatarlari kare geliyor; menude yuvarlak gostermek macOS'un
     /// kendi kisi gosterimiyle tutarli.
+    ///
+    /// drawingHandler cizimi ekrana cizilecegi anda, ekranin kendi olceginde
+    /// yapar. lockFocus kullanan eski surum sabit cozunurlukte rasterize
+    /// ediyordu ve Retina'da bulanik gorunebiliyordu.
     private static func circular(_ source: NSImage, size: CGFloat) -> NSImage {
-        let target = NSSize(width: size, height: size)
-        let output = NSImage(size: target)
-
-        output.lockFocus()
-        let bounds = NSRect(origin: .zero, size: target)
-        NSBezierPath(ovalIn: bounds).addClip()
-        source.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1)
-        output.unlockFocus()
-
-        return output
+        NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            NSBezierPath(ovalIn: rect).addClip()
+            source.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+            return true
+        }
     }
 }
