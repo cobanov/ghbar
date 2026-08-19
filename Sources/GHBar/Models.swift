@@ -28,6 +28,7 @@ struct Viewer: Sendable, Hashable {
     let login: String
     let name: String?
     let avatarURL: String
+    var organizations: [String] = []
 
     var displayName: String { name ?? login }
     var profileURL: String { "https://github.com/\(login)" }
@@ -47,12 +48,26 @@ enum SectionKind: String, Sendable, Hashable, CaseIterable {
     case pullRequests
     case issues
     case reviewRequested
+    case changesRequested
+    case myPullRequests
+
+    /// Menudeki sira ve ayni PR birden fazla aramada ciktiginda hangi bolumun
+    /// kazanacagi. Tek liste: ikisi ayri tutuldugunda menu, kodun en guclu
+    /// saydigi sinyali dorduncu sirada gosteriyordu.
+    ///
+    /// `allCases` sirasi degistirilmiyor: ham degerler `representedObject`
+    /// icinde tasiniyor ve `AppDelegate.markSectionSeen` ile eslesiyor.
+    static let displayOrder: [SectionKind] = [
+        .changesRequested, .reviewRequested, .pullRequests, .issues, .myPullRequests,
+    ]
 
     var title: String {
         switch self {
         case .pullRequests:    "Pull Requests"
         case .issues:          "Issues"
         case .reviewRequested: "Review Requested"
+        case .changesRequested: "Changes Requested"
+        case .myPullRequests:  "My Pull Requests"
         }
     }
 }
@@ -77,6 +92,10 @@ struct MenuSection: Sendable, Hashable {
 
     var items: [Item] { rows.flatMap(\.items) }
     var isEmpty: Bool { rows.isEmpty }
+
+    func unseenCount(_ isSeen: (String) -> Bool) -> Int {
+        items.filter { !isSeen($0.url) }.count
+    }
 }
 
 struct Snapshot: Sendable {
@@ -84,6 +103,8 @@ struct Snapshot: Sendable {
     let prs: [Item]
     let issues: [Item]
     let review: [Item]
+    let changesRequested: [Item]
+    let myPullRequests: [Item]
     let rateLimit: RateLimit
     let truncated: Set<SectionKind>
 }
