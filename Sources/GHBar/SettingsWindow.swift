@@ -264,6 +264,7 @@ struct GeneralPane: View {
     @Default(.showMyPullRequests) private var showMyPullRequests
     @Default(.showEmptySections) private var showEmptySections
     @Default(.menuRowBudget) private var menuRowBudget
+    @Default(.rateLimitVisibility) private var rateLimitVisibility
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
@@ -279,6 +280,11 @@ struct GeneralPane: View {
                     Text("Compact").tag(16)
                     Text("Standard").tag(24)
                     Text("Tall").tag(32)
+                }
+                Picker("Show rate limit", selection: $rateLimitVisibility) {
+                    Text("Never").tag(RateLimitVisibility.never.rawValue)
+                    Text("When low").tag(RateLimitVisibility.whenLow.rawValue)
+                    Text("Always").tag(RateLimitVisibility.always.rawValue)
                 }
             }
 

@@ -64,8 +64,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Yalnizca cizimi degistiren ayarlar. Yukaridaki listeye konsaydi her
         // isaret bir GitHub istegi harcardi; elde olan veri zaten yeterli.
         displayObserver = Task { [weak self] in
-            for await _ in Defaults.updates([.showEmptySections, .menuRowBudget],
-                                            initial: false) {
+            for await _ in Defaults.updates([.showEmptySections, .menuRowBudget,
+                                             .rateLimitVisibility], initial: false) {
                 guard let self else { return }
                 self.rebuildMenu()
             }
@@ -192,6 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showEmptySections: settings.showEmptySections,
             workRowBudget: settings.menuRowBudget,
             minRowsPerSection: settings.minRowsPerSection,
+            rateLimitVisibility: settings.rateLimitVisibility,
             maxRowsPerSection: settings.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },
             now: Date()

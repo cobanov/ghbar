@@ -31,6 +31,7 @@ final class MenuBuilder {
         var workRowBudget: Int = 24
         /// Her bolumun garanti satiri.
         var minRowsPerSection: Int = 1
+        var rateLimitVisibility: RateLimitVisibility = .whenLow
         var maxRowsPerSection: Int
         var isSeen: (String) -> Bool
         var now: Date
@@ -107,17 +108,24 @@ final class MenuBuilder {
             }
         }
 
-        if let rateLimit = input.rateLimit {
-            menu.addItem(.sectionHeader(title: "API"))
+        // Kota sayisi yalnizca dibe yaklasirken eyleme donusuyor; kendi
+        // basligi ve ayraciyla uc satir tutmasi gereksizdi. Gizliyken de
+        // ulasilabilir kalsin diye Refresh satirinin ipucunda duruyor.
+        if let rateLimit = input.rateLimit, input.rateLimitVisibility.shows(rateLimit) {
             menu.addItem(rateLimitItem(rateLimit, now: input.now))
-            menu.addItem(.separator())
         }
 
         // Kisayollar geri geldi: alt menu oku sutunu ("7 more…" ve repo
         // gruplari) sagda zaten yer ayirttigi icin kisayol sutunu ekstra
         // genislik katmiyor — ayni boslugu islevle dolduruyor.
         menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: "o"))
-        menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: "r"))
+
+        let refresh = action("Refresh", #selector(AppDelegate.refreshNow), key: "r")
+        if let rateLimit = input.rateLimit {
+            refresh.toolTip = "Rate limit \(Formatting.grouped(rateLimit.remaining))"
+                + " / \(Formatting.grouped(rateLimit.limit))"
+        }
+        menu.addItem(refresh)
         menu.addItem(action("Settings…", #selector(AppDelegate.openSettings), key: ","))
         for item in markAllSeenItems(input) { menu.addItem(item) }
 

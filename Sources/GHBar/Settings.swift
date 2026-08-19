@@ -1,5 +1,23 @@
 import Foundation
 
+/// Kota satiri menude ne zaman gorunsun.
+enum RateLimitVisibility: String, Sendable, CaseIterable {
+    case never
+    case whenLow
+    case always
+
+    /// Gostergenin turuncuya dondugu esik; sayinin eyleme donustugu nokta.
+    static let lowThreshold = 0.25
+
+    func shows(_ limit: RateLimit) -> Bool {
+        switch self {
+        case .never:   false
+        case .whenLow: limit.fraction < Self.lowThreshold
+        case .always:  true
+        }
+    }
+}
+
 /// Asama 1'de ayarlar sabit. Asama 3'te bu yapi UserDefaults'a baglanacak;
 /// alan adlari o zaman degismeyecek sekilde secildi.
 struct Settings: Sendable, Equatable {
@@ -22,6 +40,7 @@ struct Settings: Sendable, Equatable {
     var repoGroupThreshold: Int = 3
     /// Menunun bolum satirlarina ayirdigi toplam butce.
     var menuRowBudget: Int = 24
+    var rateLimitVisibility: RateLimitVisibility = .whenLow
     /// Tek bir bolumun tavani; butce bol olsa da bir bolum menuyu ele
     /// gecirmesin.
     var maxRowsPerSection: Int = 5

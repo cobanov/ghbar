@@ -20,6 +20,8 @@ extension Defaults.Keys {
     static let showMyPullRequests = Key<Bool>("showMyPullRequests", default: true)
     static let showEmptySections = Key<Bool>("showEmptySections", default: false)
     static let menuRowBudget = Key<Int>("menuRowBudget", default: 24)
+    static let rateLimitVisibility = Key<String>("rateLimitVisibility",
+                                                 default: RateLimitVisibility.whenLow.rawValue)
     static let refreshMinutes = Key<Int>("refreshMinutes", default: 5)
     static let repoGroupThreshold = Key<Int>("repoGroupThreshold", default: 3)
     static let notificationsEnabled = Key<Bool>("notificationsEnabled", default: true)
@@ -54,6 +56,8 @@ extension Settings {
         settings.showMyPullRequests = Defaults[.showMyPullRequests]
         settings.showEmptySections = Defaults[.showEmptySections]
         settings.menuRowBudget = max(8, Defaults[.menuRowBudget])
+        settings.rateLimitVisibility =
+            RateLimitVisibility(rawValue: Defaults[.rateLimitVisibility]) ?? .whenLow
         settings.repoGroupThreshold = Defaults[.repoGroupThreshold]
         return settings
     }

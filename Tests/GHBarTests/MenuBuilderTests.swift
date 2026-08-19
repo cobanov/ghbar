@@ -20,6 +20,15 @@ private func section(_ kind: SectionKind, numbers: [Int]) -> MenuSection {
     return MenuSection(kind: kind, rows: rows, truncated: false)
 }
 
+private func limit(remaining: Int) -> RateLimit {
+    RateLimit(limit: 5_000, remaining: remaining, resetAt: Date(timeIntervalSince1970: 1_800_003_600))
+}
+
+@MainActor
+private func hasRateLimitRow(_ menu: NSMenu) -> Bool {
+    menu.items.contains { $0.attributedTitle?.string.hasPrefix("Rate Limit") == true }
+}
+
 @Suite("MenuBuilder")
 struct MenuBuilderTests {
 
@@ -167,6 +176,36 @@ struct MenuBuilderTests {
         #expect(titles.filter { $0 == "None" }.count == 2)
     }
 
+    @Test("kota bol oldugunda satir cizilmez, ipucunda kalir")
+    @MainActor
+    func rateLimitHiddenWhenPlentiful() {
+        let menu = makeMenu(sections: [], rateLimit: limit(remaining: 4_900))
+
+        #expect(!hasRateLimitRow(menu))
+        #expect(!menu.items.map(\.title).contains("API"))
+        #expect(menu.items.first { $0.title == "Refresh" }?.toolTip
+            == "Rate limit 4,900 / 5,000")
+    }
+
+    @Test("kota azalinca satir cikar, basliksiz") @MainActor
+    func rateLimitShownWhenLow() {
+        let menu = makeMenu(sections: [], rateLimit: limit(remaining: 400))
+        #expect(hasRateLimitRow(menu))
+        #expect(!menu.items.map(\.title).contains("API"))
+    }
+
+    @Test("always secildiginde bol kotada da gorunur") @MainActor
+    func rateLimitAlways() {
+        #expect(hasRateLimitRow(makeMenu(sections: [], rateLimit: limit(remaining: 4_900),
+                                         rateLimitVisibility: .always)))
+    }
+
+    @Test("never secildiginde az kotada bile gizli") @MainActor
+    func rateLimitNever() {
+        #expect(!hasRateLimitRow(makeMenu(sections: [], rateLimit: limit(remaining: 10),
+                                          rateLimitVisibility: .never)))
+    }
+
     @Test("yenileme surerken durum satiri gorunur")
     @MainActor
     func refreshingRow() {
@@ -182,12 +221,14 @@ struct MenuBuilderTests {
         isRefreshing: Bool = false,
         selectedOrganizations: [String] = [],
         repositoryFilterActive: Bool = false,
-        isSeen: @escaping (String) -> Bool = { _ in false }
+        isSeen: @escaping (String) -> Bool = { _ in false },
+        rateLimit: RateLimit? = nil,
+        rateLimitVisibility: RateLimitVisibility = .whenLow
     ) -> NSMenu {
         MenuBuilder(target: NSObject()).build(.init(
             viewer: Viewer(login: "alice", name: nil, avatarURL: "x"),
             sections: sections,
-            rateLimit: nil,
+            rateLimit: rateLimit,
             errors: [],
             lastRefresh: Date(),
             isSignedOut: false,
@@ -198,6 +239,7 @@ struct MenuBuilderTests {
             repositoryFilterActive: repositoryFilterActive,
             visibleSections: visibleSections,
             showEmptySections: showEmptySections,
+            rateLimitVisibility: rateLimitVisibility,
             maxRowsPerSection: 5,
             isSeen: isSeen,
             now: Date()
