@@ -20,6 +20,7 @@ struct ResponseParserTests {
         #expect(snap.issues.count == 1)   // yazari null olan atildi
         #expect(snap.review.count == 1)
         #expect(snap.changesRequested.count == 1)
+        #expect(snap.myPullRequests.count == 2)
         #expect(snap.rateLimit.remaining == 4911)
     }
 
@@ -39,6 +40,7 @@ struct ResponseParserTests {
           "issues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":0,"nodes":[]},
+          "myPullRequests":{"issueCount":0,"nodes":[]},
           "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
         """.data(using: .utf8)!
         let snap = try ResponseParser.parse(json)
@@ -52,6 +54,7 @@ struct ResponseParserTests {
           "issues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":0,"nodes":[]},
+          "myPullRequests":{"issueCount":0,"nodes":[]},
           "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
         """.data(using: .utf8)!
         let snap = try ResponseParser.parse(json)
@@ -65,6 +68,7 @@ struct ResponseParserTests {
           "issues":{"issueCount":3,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":100,"nodes":[]},
+          "myPullRequests":{"issueCount":0,"nodes":[]},
           "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
         """.data(using: .utf8)!
         let snap = try ResponseParser.parse(json)

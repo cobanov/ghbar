@@ -261,6 +261,7 @@ struct GeneralPane: View {
     @Default(.showIssues) private var showIssues
     @Default(.showReviewRequested) private var showReviewRequested
     @Default(.showChangesRequested) private var showChangesRequested
+    @Default(.showMyPullRequests) private var showMyPullRequests
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
@@ -270,6 +271,7 @@ struct GeneralPane: View {
                 Toggle("Issues", isOn: $showIssues)
                 Toggle("Review Requested", isOn: $showReviewRequested)
                 Toggle("Changes Requested", isOn: $showChangesRequested)
+                Toggle("My Pull Requests", isOn: $showMyPullRequests)
             }
 
             Picker("Refresh every", selection: $refreshMinutes) {

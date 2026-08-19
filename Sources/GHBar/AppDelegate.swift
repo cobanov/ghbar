@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                              .repoListIsAllowList, .showBots, .showDrafts,
                                              .showPullRequests, .showIssues,
                                              .showReviewRequested, .showChangesRequested,
+                                             .showMyPullRequests,
                                              .refreshMinutes, .repoGroupThreshold], initial: false) {
                 guard let self else { return }
                 self.scheduleTimer()

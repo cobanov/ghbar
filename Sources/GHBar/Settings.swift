@@ -16,6 +16,7 @@ struct Settings: Sendable, Equatable {
     var showIssues: Bool = true
     var showReviewRequested: Bool = true
     var showChangesRequested: Bool = true
+    var showMyPullRequests: Bool = true
     var repoGroupThreshold: Int = 3
     var maxRowsPerSection: Int = 5
 
@@ -27,6 +28,7 @@ struct Settings: Sendable, Equatable {
         if showIssues { result.insert(.issues) }
         if showReviewRequested { result.insert(.reviewRequested) }
         if showChangesRequested { result.insert(.changesRequested) }
+        if showMyPullRequests { result.insert(.myPullRequests) }
         return result
     }
 }

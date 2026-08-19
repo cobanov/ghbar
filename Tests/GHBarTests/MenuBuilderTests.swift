@@ -16,7 +16,8 @@ struct MenuBuilderTests {
         #expect(titles.contains("Issues"))
         #expect(titles.contains("Review Requested"))
         #expect(titles.contains("Changes Requested"))
-        #expect(titles.filter { $0 == "None" }.count == 4)
+        #expect(titles.contains("My Pull Requests"))
+        #expect(titles.filter { $0 == "None" }.count == 5)
         #expect(!titles.contains("Nothing waiting"))
     }
 
@@ -41,7 +42,7 @@ struct MenuBuilderTests {
         )
 
         let titles = makeMenu(sections: [section]).items.map(\.title)
-        #expect(titles.filter { $0 == "None" }.count == 3)
+        #expect(titles.filter { $0 == "None" }.count == 4)
         #expect(titles.filter { $0 == "Mark All as Seen" }.count == 1)
     }
 
@@ -55,6 +56,7 @@ struct MenuBuilderTests {
         #expect(titles.contains("Review Requested"))
         #expect(!titles.contains("Issues"))
         #expect(!titles.contains("Changes Requested"))
+        #expect(!titles.contains("My Pull Requests"))
         #expect(titles.filter { $0 == "None" }.count == 2)
     }
 

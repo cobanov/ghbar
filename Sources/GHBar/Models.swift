@@ -49,6 +49,8 @@ enum SectionKind: String, Sendable, Hashable, CaseIterable {
     case issues
     case reviewRequested
     case changesRequested
+    /// Sirada en sonda: eyleme cagiran bolumler ustte kalsin.
+    case myPullRequests
 
     var title: String {
         switch self {
@@ -56,6 +58,7 @@ enum SectionKind: String, Sendable, Hashable, CaseIterable {
         case .issues:          "Issues"
         case .reviewRequested: "Review Requested"
         case .changesRequested: "Changes Requested"
+        case .myPullRequests:  "My Pull Requests"
         }
     }
 }
@@ -88,6 +91,7 @@ struct Snapshot: Sendable {
     let issues: [Item]
     let review: [Item]
     let changesRequested: [Item]
+    let myPullRequests: [Item]
     let rateLimit: RateLimit
     let truncated: Set<SectionKind>
 }

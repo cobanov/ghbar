@@ -10,6 +10,7 @@ struct QueryTests {
         #expect(q.issues == "is:issue is:open user:@me -author:@me")
         #expect(q.review == "is:pr is:open review-requested:@me")
         #expect(q.changesRequested == "is:pr is:open author:@me review:changes_requested")
+        #expect(q.myPullRequests == "is:pr is:open author:@me")
         #expect(q.filtersDropped == false)
         #expect(q.allowListEmpty == false)
     }
@@ -26,6 +27,16 @@ struct QueryTests {
         #expect(q.review == "is:pr is:open review-requested:@me org:acme")
         #expect(q.changesRequested
             == "is:pr is:open author:@me review:changes_requested org:acme")
+        #expect(q.myPullRequests == "is:pr is:open author:@me org:acme")
+    }
+
+    @Test("kendi PR'lari hesap kapsamiyla daraltilmaz") func authoredIgnoresAccountScope() {
+        var s = Settings.default
+        s.accounts = ["alice"]
+        let q = Query.build(s)
+        // user:alice eklenseydi alice'in baskasinin reposuna actigi PR kaybolurdu.
+        #expect(q.myPullRequests == "is:pr is:open author:@me")
+        #expect(!q.myPullRequests.contains("user:"))
     }
 
     @Test("birden fazla org ayni niteleyicide OR olur") func multipleOrganizations() {
@@ -45,6 +56,7 @@ struct QueryTests {
         #expect(q.review == "is:pr is:open review-requested:@me org:acme -repo:acme/noisy")
         #expect(q.changesRequested
             == "is:pr is:open author:@me review:changes_requested org:acme -repo:acme/noisy")
+        #expect(q.myPullRequests == "is:pr is:open author:@me org:acme -repo:acme/noisy")
     }
 
     @Test("egik cizgisiz repo org seciliyse ilk orgla birlesir") func bareRepoNameUsesOrg() {
@@ -69,6 +81,7 @@ struct QueryTests {
         #expect(q.review == "is:pr is:open review-requested:@me org:acme")
         #expect(q.changesRequested
             == "is:pr is:open author:@me review:changes_requested repo:acme/one")
+        #expect(q.myPullRequests == "is:pr is:open author:@me repo:acme/one")
     }
 
     @Test("birden fazla hesap birden fazla user: parcasi verir") func multipleAccounts() {

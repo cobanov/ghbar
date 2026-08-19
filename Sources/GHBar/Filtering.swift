@@ -3,16 +3,21 @@ import Foundation
 enum Filtering {
 
     static func sections(from snapshot: Snapshot, settings: Settings) -> [MenuSection] {
-        // Changes Requested en guclu sinyal, sonra Review Requested gelir.
-        // Ayni PR birden fazla aramada cikarsa yalniz en guclu bolumde kalir.
-        let changesRequested = clean(snapshot.changesRequested, settings: settings)
-        let changesURLs = Set(changesRequested.map(\.url))
-        let review = clean(snapshot.review, settings: settings)
-            .filter { !changesURLs.contains($0.url) }
-        let reviewURLs = Set(review.map(\.url))
+        // Ayni PR birden fazla aramada cikabilir; en guclu is sinyalini veren
+        // bolumde kalir. Siralama: Changes Requested > Review Requested >
+        // Pull Requests > My Pull Requests.
+        var claimed: Set<String> = []
+        func take(_ items: [Item]) -> [Item] {
+            let kept = clean(items, settings: settings).filter { !claimed.contains($0.url) }
+            claimed.formUnion(kept.map(\.url))
+            return kept
+        }
 
-        let prs = clean(snapshot.prs, settings: settings)
-            .filter { !reviewURLs.contains($0.url) && !changesURLs.contains($0.url) }
+        let changesRequested = take(snapshot.changesRequested)
+        let review = take(snapshot.review)
+        let prs = take(snapshot.prs)
+        let mine = take(snapshot.myPullRequests)
+        // Issue'lar PR aramalariyla kesismiyor; sirasi onemsiz.
         let issues = clean(snapshot.issues, settings: settings)
 
         let candidates: [(SectionKind, [Item])] = [
@@ -20,6 +25,7 @@ enum Filtering {
             (.issues, issues),
             (.reviewRequested, review),
             (.changesRequested, changesRequested),
+            (.myPullRequests, mine),
         ]
 
         return candidates.compactMap { kind, items in

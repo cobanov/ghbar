@@ -11,7 +11,8 @@ struct SettingsStoreTests {
         Defaults.reset(.accounts, .organizations, .knownOrganizations,
                        .repoList, .repoListIsAllowList,
                        .showBots, .showDrafts, .showPullRequests, .showIssues,
-                       .showReviewRequested, .showChangesRequested, .refreshMinutes,
+                       .showReviewRequested, .showChangesRequested, .showMyPullRequests,
+                       .refreshMinutes,
                        .repoGroupThreshold, .notificationsEnabled)
     }
 
@@ -33,6 +34,7 @@ struct SettingsStoreTests {
         Defaults[.showIssues] = false
         Defaults[.showReviewRequested] = false
         Defaults[.showChangesRequested] = false
+        Defaults[.showMyPullRequests] = false
         Defaults[.repoGroupThreshold] = 10
 
         let s = Settings.fromDefaults()

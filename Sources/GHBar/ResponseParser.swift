@@ -60,6 +60,11 @@ enum ResponseParser {
             kind: .pullRequest,
             section: .changesRequested
         )
+        let myPullRequests = try search(
+            "myPullRequests",
+            kind: .pullRequest,
+            section: .myPullRequests
+        )
 
         guard let limitObject = payload["rateLimit"] as? [String: Any],
               let limit = limitObject["limit"] as? Int,
@@ -75,6 +80,7 @@ enum ResponseParser {
             issues: issues,
             review: review,
             changesRequested: changesRequested,
+            myPullRequests: myPullRequests,
             rateLimit: RateLimit(limit: limit, remaining: remaining, resetAt: resetAt),
             truncated: truncated
         )

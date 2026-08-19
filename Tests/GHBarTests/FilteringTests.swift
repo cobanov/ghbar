@@ -28,12 +28,14 @@ private func snapshot(
     issues: [Item] = [],
     review: [Item] = [],
     changesRequested: [Item] = [],
+    myPullRequests: [Item] = [],
     truncated: Set<SectionKind> = []
 ) -> Snapshot {
     Snapshot(
         viewer: Viewer(login: "alice", name: nil, avatarURL: "x"),
         prs: prs, issues: issues, review: review,
         changesRequested: changesRequested,
+        myPullRequests: myPullRequests,
         rateLimit: RateLimit(limit: 5000, remaining: 5000, resetAt: Date()),
         truncated: truncated
     )
@@ -86,6 +88,33 @@ struct FilteringTests {
         #expect(sections.first { $0.kind == .pullRequests }?.items.map(\.number) == [1])
         #expect(sections.first { $0.kind == .reviewRequested } == nil)
         #expect(sections.first { $0.kind == .changesRequested }?.items.map(\.number) == [204])
+    }
+
+    @Test("kendi PR'lari ayri bolume dusr") func myPullRequestsSection() {
+        let mine = makeItem(91, repo: "other/project")
+        let snap = snapshot(prs: [makeItem(1)], myPullRequests: [mine])
+        let sections = Filtering.sections(from: snap, settings: .default)
+
+        #expect(sections.map(\.kind) == [.pullRequests, .myPullRequests])
+        #expect(sections.first { $0.kind == .myPullRequests }?.items.map(\.number) == [91])
+    }
+
+    @Test("degisiklik istenen PR My Pull Requests'te tekrar etmez")
+    func changesRequestedOutranksMine() {
+        let shared = makeItem(88)
+        let snap = snapshot(changesRequested: [shared], myPullRequests: [shared, makeItem(91)])
+        let sections = Filtering.sections(from: snap, settings: .default)
+
+        #expect(sections.first { $0.kind == .changesRequested }?.items.map(\.number) == [88])
+        #expect(sections.first { $0.kind == .myPullRequests }?.items.map(\.number) == [91])
+    }
+
+    @Test("kendine atadigi PR yalniz Pull Requests'te cikar") func assignedOutranksMine() {
+        let shared = makeItem(42)
+        let snap = snapshot(prs: [shared], myPullRequests: [shared])
+        let sections = Filtering.sections(from: snap, settings: .default)
+
+        #expect(sections.map(\.kind) == [.pullRequests])
     }
 
     @Test("en yeni ustte siralanir") func sorting() {

@@ -5,6 +5,7 @@ struct Queries: Sendable, Equatable {
     let issues: String
     let review: String
     let changesRequested: String
+    let myPullRequests: String
     /// Uzunluk tavani yuzunden bazi filtreler dusuruldu.
     let filtersDropped: Bool
     /// Beyaz liste acik ama bos — hicbir sey gosterilmemeli.
@@ -62,22 +63,33 @@ enum Query {
         )
         dropped = dropped || reviewDropped
 
-        // Kullanicinin kendi PR'lari normal PR aramasinda -author:@me ile
-        // elenir. Degisiklik isteyen review, ayri ve daha guclu bir is sinyali.
-        let changesScope = settings.repoListIsAllowList
+        // author:@me kendi basina daraltiyor; user: eklemek PR'lari kisinin
+        // kendi repolarina hapsederdi ve baskasinin reposuna actigi PR
+        // kaybolurdu. Org veya beyaz liste seciliyse kapsam yine uygulanir.
+        let authoredScope = settings.repoListIsAllowList
             ? repos.map { "repo:\($0)" }
             : settings.organizations.map { "org:\($0)" }
+
+        // Kullanicinin kendi PR'lari normal PR aramasinda -author:@me ile
+        // elenir. Degisiklik isteyen review, ayri ve daha guclu bir is sinyali.
         let (changesParts, changesDropped) = fit(
-            ["is:pr", "is:open", "author:@me", "review:changes_requested"] + changesScope,
+            ["is:pr", "is:open", "author:@me", "review:changes_requested"] + authoredScope,
             exclusions: exclusions
         )
         dropped = dropped || changesDropped
+
+        let (mineParts, mineDropped) = fit(
+            ["is:pr", "is:open", "author:@me"] + authoredScope,
+            exclusions: exclusions
+        )
+        dropped = dropped || mineDropped
 
         return Queries(
             prs:    assemble(["is:pr", "is:open"]),
             issues: assemble(["is:issue", "is:open"]),
             review: reviewParts.joined(separator: " "),
             changesRequested: changesParts.joined(separator: " "),
+            myPullRequests: mineParts.joined(separator: " "),
             filtersDropped: dropped,
             allowListEmpty: allowListEmpty
         )
@@ -125,6 +137,7 @@ enum Query {
       $issues: String!,
       $review: String!,
       $changesRequested: String!,
+      $myPullRequests: String!,
       $first: Int!
     ) {
       viewer {
@@ -156,6 +169,14 @@ enum Query {
         } }
       }
       changesRequested: search(query: $changesRequested, type: ISSUE, first: $first) {
+        issueCount
+        nodes { ... on PullRequest {
+          number title url createdAt isDraft
+          author { login __typename }
+          repository { nameWithOwner }
+        } }
+      }
+      myPullRequests: search(query: $myPullRequests, type: ISSUE, first: $first) {
         issueCount
         nodes { ... on PullRequest {
           number title url createdAt isDraft
