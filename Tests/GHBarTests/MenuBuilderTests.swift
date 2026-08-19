@@ -3,6 +3,23 @@ import Foundation
 import Testing
 @testable import GHBar
 
+private func section(_ kind: SectionKind, numbers: [Int]) -> MenuSection {
+    let rows = numbers.map { number in
+        Row.item(Item(
+            kind: .pullRequest,
+            repository: "alice/webapp",
+            number: number,
+            title: "Title \(number)",
+            url: "https://github.com/alice/webapp/pull/\(number)",
+            createdAt: Date(timeIntervalSince1970: 1_800_000_000),
+            isDraft: false,
+            authorLogin: "bob",
+            authorIsBot: false
+        ))
+    }
+    return MenuSection(kind: kind, rows: rows, truncated: false)
+}
+
 @Suite("MenuBuilder")
 struct MenuBuilderTests {
 
@@ -106,6 +123,35 @@ struct MenuBuilderTests {
         #expect(titles.filter { $0 == "Mark All as Seen" }.count == 1)
     }
 
+    @Test("Mark All as Seen tek satir, altbilgide ve Option alternatifiyle")
+    @MainActor
+    func markAllSeenIsGlobal() {
+        let menu = makeMenu(sections: [section(.pullRequests, numbers: [1, 2]),
+                                       section(.issues, numbers: [3])])
+        let titles = menu.items.map(\.title)
+
+        #expect(titles.filter { $0 == "Mark All as Seen" }.count == 1)
+
+        let index = titles.firstIndex(of: "Mark All as Seen")!
+        #expect(titles[index - 1] == "Settings…")
+
+        let alternate = menu.items[index + 1]
+        #expect(alternate.title == "Mark as Seen")
+        #expect(alternate.isAlternate)
+        #expect(alternate.keyEquivalentModifierMask == .option)
+        #expect(alternate.submenu?.items.map(\.title) == ["Pull Requests  2", "Issues  1"])
+    }
+
+    @Test("gorulmemis oge yoksa isaretleme satiri hic cikmaz")
+    @MainActor
+    func markAllSeenHiddenWhenNothingUnseen() {
+        let menu = makeMenu(sections: [section(.pullRequests, numbers: [1])],
+                            isSeen: { _ in true })
+        let titles = menu.items.map(\.title)
+        #expect(!titles.contains("Mark All as Seen"))
+        #expect(!titles.contains("Mark as Seen"))
+    }
+
     @Test("ayar acikken gizlenen bolum yine hic cizilmez")
     @MainActor
     func hiddenSection() {
@@ -135,7 +181,8 @@ struct MenuBuilderTests {
         showEmptySections: Bool = false,
         isRefreshing: Bool = false,
         selectedOrganizations: [String] = [],
-        repositoryFilterActive: Bool = false
+        repositoryFilterActive: Bool = false,
+        isSeen: @escaping (String) -> Bool = { _ in false }
     ) -> NSMenu {
         MenuBuilder(target: NSObject()).build(.init(
             viewer: Viewer(login: "alice", name: nil, avatarURL: "x"),
@@ -152,7 +199,7 @@ struct MenuBuilderTests {
             visibleSections: visibleSections,
             showEmptySections: showEmptySections,
             maxRowsPerSection: 5,
-            isSeen: { _ in false },
+            isSeen: isSeen,
             now: Date()
         ))
     }

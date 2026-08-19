@@ -235,6 +235,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildMenu()
     }
 
+    @objc func markAllSeen() {
+        seenStore.markSeen(sections.flatMap(\.items).map(\.url), at: Date())
+        try? seenStore.save()
+        rebuildMenu()
+    }
+
     @objc func openProfile() {
         guard let viewer, let url = URL(string: viewer.profileURL) else { return }
         NSWorkspace.shared.open(url)

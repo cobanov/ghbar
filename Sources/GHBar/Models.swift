@@ -83,6 +83,10 @@ struct MenuSection: Sendable, Hashable {
 
     var items: [Item] { rows.flatMap(\.items) }
     var isEmpty: Bool { rows.isEmpty }
+
+    func unseenCount(_ isSeen: (String) -> Bool) -> Int {
+        items.filter { !isSeen($0.url) }.count
+    }
 }
 
 struct Snapshot: Sendable {

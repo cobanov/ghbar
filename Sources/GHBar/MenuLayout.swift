@@ -33,10 +33,10 @@ enum MenuLayout {
         let floor = max(1, Swift.min(minimum, cap))
         let counts = sections.map(\.rows.count)
 
-        // Her bolum govdesinin disinda uc satir harciyor: baslik, "Mark All as
-        // Seen" ve tasma varsa "N more…". Butceden bunlari dusmek, bolum
-        // sayisi arttikca govdeleri kisaltiyor; toplam yukseklik yerinde
-        // kaliyor. Taban her bolume birer satir.
+        // Her bolum govdesinin disinda uc satir harciyor: baslik, ayrac ve
+        // tasma varsa "N more…". Butceden bunlari dusmek, bolum sayisi
+        // arttikca govdeleri kisaltiyor; toplam yukseklik yerinde kaliyor.
+        // Taban her bolume birer satir.
         let itemBudget = max(sections.count, workRowBudget - 3 * sections.count)
 
         var allocation = counts.map { Swift.min(floor, $0) }

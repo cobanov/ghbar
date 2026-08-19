@@ -119,6 +119,7 @@ final class MenuBuilder {
         menu.addItem(action("Open GitHub", #selector(AppDelegate.openProfile), key: "o"))
         menu.addItem(action("Refresh", #selector(AppDelegate.refreshNow), key: "r"))
         menu.addItem(action("Settings…", #selector(AppDelegate.openSettings), key: ","))
+        for item in markAllSeenItems(input) { menu.addItem(item) }
 
         if LaunchAtLogin.isAvailable {
             // Tik, NSMenuItem.state yerine gorsel sutununda: state kullanmak
@@ -152,7 +153,6 @@ final class MenuBuilder {
             return
         }
         addRows(of: plan, to: menu, input: input)
-        menu.addItem(markAllSeenItem(for: plan.section))
         menu.addItem(.separator())
     }
 
@@ -378,16 +378,36 @@ final class MenuBuilder {
         return item
     }
 
-    private func markAllSeenItem(for section: MenuSection) -> NSMenuItem {
-        let item = NSMenuItem(
-            title: "Mark All as Seen",
-            action: #selector(AppDelegate.markSectionSeen(_:)),
-            keyEquivalent: ""
-        )
-        item.target = target
-        item.representedObject = section.kind.rawValue
-        item.image = Icons.symbol("checkmark.circle", color: .secondaryLabelColor)
-        return item
+    /// Tek satir, artik bolum basina bir tane degil. Bes kopya menunun her on
+    /// satirindan birini gunde bir kez kullanilan bir eylem icin harciyordu.
+    /// Bolum bazinda isaretleme Option alternatifinde duruyor: ayri satir
+    /// harcamiyor ve klavyeyle de erisilebiliyor.
+    private func markAllSeenItems(_ input: Input) -> [NSMenuItem] {
+        let sections = input.sections.filter { $0.unseenCount(input.isSeen) > 0 }
+        guard !sections.isEmpty else { return [] }
+
+        let all = action("Mark All as Seen", #selector(AppDelegate.markAllSeen))
+        all.image = Icons.symbol("checkmark.circle", color: .secondaryLabelColor)
+
+        let perSection = NSMenuItem(title: "Mark as Seen", action: nil, keyEquivalent: "")
+        perSection.isAlternate = true
+        perSection.keyEquivalentModifierMask = .option
+        perSection.image = Icons.symbol("checkmark.circle", color: .secondaryLabelColor)
+
+        let submenu = NSMenu()
+        for section in sections {
+            let row = NSMenuItem(
+                title: "\(section.kind.title)  \(section.unseenCount(input.isSeen))",
+                action: #selector(AppDelegate.markSectionSeen(_:)),
+                keyEquivalent: ""
+            )
+            row.target = target
+            row.representedObject = section.kind.rawValue
+            submenu.addItem(row)
+        }
+        perSection.submenu = submenu
+
+        return [all, perSection]
     }
 
     private func errorItem(_ error: AppError) -> NSMenuItem {
