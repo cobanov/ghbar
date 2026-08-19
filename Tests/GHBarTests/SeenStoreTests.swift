@@ -78,3 +78,62 @@ struct SeenStoreTests {
         #expect(store.isSeen("anything") == false)
     }
 }
+
+@Suite("SeenStore.notified")
+struct SeenStoreNotifiedTests {
+
+    @Test("bildirilmis oge bir daha bildirilmez") func onceOnly() {
+        let store = SeenStore(url: temporaryURL())
+        _ = store.markFirstRunDone()
+        let items = [makeItem(1), makeItem(2)]
+        #expect(store.unnotified(among: items).count == 2)
+        store.markNotified(items.map(\.url))
+        #expect(store.unnotified(among: items).isEmpty)
+        // yeni oge gelince yalniz o doner
+        #expect(store.unnotified(among: items + [makeItem(3)]).map(\.number) == [3])
+    }
+
+    @Test("bildirilmislik gorulmuslukten bagimsiz") func independentFromSeen() {
+        let store = SeenStore(url: temporaryURL())
+        store.markNotified([makeItem(1).url])
+        #expect(store.isSeen(makeItem(1).url) == false)   // bildirildi ama gorulmedi
+    }
+
+    @Test("diske yazilip geri okunur") func persists() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = SeenStore(url: url)
+        _ = store.markFirstRunDone()
+        store.markNotified(["https://example.com/1"])
+        try store.save()
+        let reloaded = SeenStore(url: url)
+        #expect(reloaded.unnotified(among: [makeItem(1)]).isEmpty)
+        #expect(reloaded.claimNotificationBackfill() == false)
+    }
+
+    @Test("prune bildirilmis kumesini de temizler") func pruneNotified() {
+        let store = SeenStore(url: temporaryURL())
+        store.markNotified(["a", "b"])
+        store.prune(keeping: ["a"])
+        // "b" dustu: ayni URL geri gelirse (reopen) yeniden bildirilebilir
+        #expect(store.unnotified(among: [makeItem(1)]).count == 1)
+    }
+
+    @Test("v1 dosyasi (notified alani yok) yukseltme sayilir: TEK seferlik backfill") func v1Upgrade() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        // Hatanin yasandigi gercek durum: bootstrapped=true, notified alani hic yok
+        let v1 = #"{"version":1,"bootstrapped":true,"seen":{}}"#
+        try Data(v1.utf8).write(to: url)
+
+        let store = SeenStore(url: url)
+        #expect(store.claimNotificationBackfill() == true)   // ilk yenileme: sustur
+        #expect(store.claimNotificationBackfill() == false)  // sonrakiler: normal
+        #expect(store.isFirstRun == false)
+    }
+
+    @Test("taze kurulumda backfill tetiklenmez") func freshInstallNoBackfill() {
+        let store = SeenStore(url: temporaryURL())
+        #expect(store.claimNotificationBackfill() == false)
+    }
+}

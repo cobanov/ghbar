@@ -80,11 +80,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let built = Filtering.sections(from: snapshot, settings: settings)
                 let all = built.flatMap(\.items)
 
-                // Ilk yenilemede bildirim atilmaz (kurulumun ilk saniyesinde
-                // onlarca bildirim yagardi), ama ogeler okunmamis kalir ki
-                // kullanici neyi gormedigini gorebilsin.
-                let wasFirstRun = seenStore.markFirstRunDone()
-                let fresh = wasFirstRun ? [] : seenStore.newItems(among: all)
+                // Bildirim "gorulmemis"e degil "hic bildirilmemis"e bakar.
+                // Gorulmusluk kullanici tiklayinca degisen bir menu durumu;
+                // ikisi ayni kume sanildiginda her yenilemede ayni eski
+                // ogeler yeniden bildiriliyordu. Ilk calistirmada ve v1->v2
+                // yukseltmesinde mevcut ogeler sessizce isaretlenir.
+                let firstRun = seenStore.markFirstRunDone()
+                let backfill = seenStore.claimNotificationBackfill()
+                let fresh = (firstRun || backfill) ? [] : seenStore.unnotified(among: all)
+                seenStore.markNotified(all.map(\.url))
                 seenStore.prune(keeping: Set(all.map(\.url)))
                 try? seenStore.save()
                 notifier.notify(about: fresh)
