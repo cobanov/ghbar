@@ -41,6 +41,10 @@ test:
 run:
 	swift run $(APP)
 
+# App Store ekran goruntuleri — gercek SwiftUI gorunumlerinden, 2880x1800.
+screens: build
+	.build/release/$(APP) --render-screens $(BUILD_DIR)/screens
+
 # --- Ikon ---------------------------------------------------------------
 # AppKit ile programatik ciziliyor; harici cizim araci gerekmiyor.
 

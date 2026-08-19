@@ -25,7 +25,7 @@ final class SettingsController {
     }
 }
 
-private struct SettingsView: View {
+struct SettingsView: View {
     var onSignOut: () -> Void
 
     var body: some View {
@@ -43,7 +43,7 @@ private struct SettingsView: View {
 
 // MARK: - Accounts
 
-private struct AccountsPane: View {
+struct AccountsPane: View {
     var onSignOut: () -> Void
     @Default(.signedInLogin) private var signedInLogin
     @Default(.accounts) private var accounts
@@ -102,7 +102,7 @@ private struct AccountsPane: View {
 
 // MARK: - Repositories
 
-private struct RepositoriesPane: View {
+struct RepositoriesPane: View {
     @Default(.repoList) private var repoList
     @Default(.repoListIsAllowList) private var isAllowList
     @Default(.knownRepos) private var knownRepos
@@ -180,7 +180,7 @@ private struct RepositoriesPane: View {
 
 // MARK: - General
 
-private struct GeneralPane: View {
+struct GeneralPane: View {
     @Default(.refreshMinutes) private var refreshMinutes
     @Default(.notificationsEnabled) private var notificationsEnabled
     @Default(.showBots) private var showBots

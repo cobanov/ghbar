@@ -34,7 +34,7 @@ final class WelcomeController {
     }
 }
 
-private struct WelcomeView: View {
+struct WelcomeView: View {
 
     enum Stage {
         case idle
