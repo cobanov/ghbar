@@ -40,6 +40,31 @@ struct FormattingAgeTests {
     }
 }
 
+@Suite("Formatting.spokenAge")
+struct SpokenAgeTests {
+
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func spoken(minutesAgo: Int) -> String {
+        Formatting.spokenAge(of: now.addingTimeInterval(-Double(minutesAgo * 60)), now: now)
+    }
+
+    @Test("tekil birim s almaz") func singular() {
+        #expect(spoken(minutesAgo: 60) == "1 hour old")
+        #expect(spoken(minutesAgo: 60 * 24) == "1 day old")
+    }
+
+    @Test("cogul birim s alir") func plural() {
+        #expect(spoken(minutesAgo: 45) == "45 minutes old")
+        #expect(spoken(minutesAgo: 60 * 5) == "5 hours old")
+        #expect(spoken(minutesAgo: 60 * 24 * 90) == "3 months old")
+    }
+
+    @Test("gelecekteki tarih negatif okunmaz") func future() {
+        #expect(spoken(minutesAgo: -100) == "0 minutes old")
+    }
+}
+
 @Suite("Formatting.grouped")
 struct FormattingGroupedTests {
     @Test("binlik ayrac") func thousands() {
