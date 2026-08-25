@@ -21,6 +21,43 @@ struct ResponseParserTests {
         #expect(snap.rateLimit.remaining == 4911)
     }
 
+    @Test("profil sayaclari toplanir") func parsesSocial() throws {
+        let snap = try ResponseParser.parse(fixture("response"))
+
+        #expect(snap.social.stars == 511)        // 283 + 217 + 11
+        #expect(snap.social.followers == 2611)
+        #expect(snap.social.following == 74)
+        #expect(snap.social.starsAreExact)       // 3 repo, 3'u de sayildi
+    }
+
+    @Test("sayac alanlari eksikse sifira duser") func socialDefaultsToZero() throws {
+        let json = """
+        {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
+          "prs":{"issueCount":0,"nodes":[]},
+          "issues":{"issueCount":0,"nodes":[]},
+          "review":{"issueCount":0,"nodes":[]},
+          "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
+        """.data(using: .utf8)!
+
+        let snap = try ResponseParser.parse(json)
+        #expect(snap.social == .empty)
+    }
+
+    @Test("100'den fazla repo varsa yildiz toplami alt sinir") func starsNotExact() throws {
+        let json = """
+        {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x",
+            "repositories":{"totalCount":140,"nodes":[{"stargazerCount":5}]}},
+          "prs":{"issueCount":0,"nodes":[]},
+          "issues":{"issueCount":0,"nodes":[]},
+          "review":{"issueCount":0,"nodes":[]},
+          "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
+        """.data(using: .utf8)!
+
+        let snap = try ResponseParser.parse(json)
+        #expect(snap.social.stars == 5)
+        #expect(snap.social.starsAreExact == false)
+    }
+
     @Test("bot bayragi __typename'den okunur") func botFlag() throws {
         let snap = try ResponseParser.parse(fixture("response"))
         #expect(snap.prs.first { $0.number == 56 }?.authorIsBot == true)

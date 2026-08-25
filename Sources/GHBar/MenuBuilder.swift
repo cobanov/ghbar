@@ -12,6 +12,7 @@ final class MenuBuilder {
 
     struct Input {
         var viewer: Viewer?
+        var social: Social?
         var sections: [MenuSection]
         var rateLimit: RateLimit?
         var errors: [AppError]
@@ -34,7 +35,13 @@ final class MenuBuilder {
             menu.addItem(.separator())
         } else if let viewer = input.viewer {
             menu.addItem(profileItem(viewer))
+            // Sayaclar adin altinda tek satir: ayri bir bolum + uc satir
+            // denendi, dar bir tablo genis bir menunun icinde dengesiz
+            // duruyordu. Tek satirda hizalanacak sutun yok, satir kendi
+            // genisligi kadar yer kapliyor.
+            if let social = input.social { menu.addItem(socialItem(social)) }
             menu.addItem(.separator())
+
         }
 
         if !input.errors.isEmpty {
@@ -230,6 +237,30 @@ final class MenuBuilder {
         return item
     }
 
+    /// Sayaclar tek satirda, adin hemen altinda: "2,021 stars · 2,611
+    /// followers · 74 following". Profil satirinin alt basligi gibi okunuyor.
+    private func socialItem(_ social: Social) -> NSMenuItem {
+        // Sayilamayan kuyruk varsa "+" ile belli edilir: 2,021+ okuyan bunun
+        // bir alt sinir oldugunu anlar, yuvarlanmis bir sayi sanmaz.
+        let stars = Formatting.grouped(social.stars) + (social.starsAreExact ? "" : "+")
+
+        let line = [
+            "\(stars) stars",
+            "\(Formatting.grouped(social.followers)) followers",
+            "\(Formatting.grouped(social.following)) following",
+        ].joined(separator: " · ")
+
+        let item = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        item.attributedTitle = NSAttributedString(
+            string: line,
+            attributes: [.font: MenuFont.detail, .foregroundColor: NSColor.secondaryLabelColor]
+        )
+        item.isEnabled = false
+        // Ada hizalansin diye ayni gorsel sutunu bos birakiliyor.
+        item.image = Icons.blank
+        return item
+    }
+
     private func rateLimitItem(_ limit: RateLimit, now: Date) -> NSMenuItem {
         // Sifirlanma ani gecmisse "0m" anlamsiz; bir sonraki yenilemede yeni
         // pencere gelmis olacak.
@@ -315,6 +346,7 @@ enum MenuFont {
         style.lineBreakMode = .byTruncatingTail   // olcum sasarsa son emniyet
         return style
     }
+
 
     static var label: NSFont { .menuFont(ofSize: 0) }
 

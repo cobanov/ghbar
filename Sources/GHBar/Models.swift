@@ -33,6 +33,23 @@ struct Viewer: Sendable, Hashable {
     var profileURL: String { "https://github.com/\(login)" }
 }
 
+/// Profil sayaclari: menude adin hemen altinda gosterilen "Social" bolumu.
+struct Social: Sendable, Hashable {
+    /// Kendi public repolarina gelen yildizlarin toplami. Fork'lar haric:
+    /// fork'un yildizi orijinal repoya ait, sana degil.
+    let stars: Int
+    let followers: Int
+    let following: Int
+
+    /// Yildiz toplami tek sayfada (ilk 100 repo) hesaplaniyor. Daha fazla
+    /// repo varsa sayi bir ALT SINIR olur; menu bunu "+" ile belli eder.
+    /// Repolar yildiza gore azalan siralandigi icin sayilmayan kuyruk
+    /// pratikte birkac yildiz tutar.
+    let starsAreExact: Bool
+
+    static let empty = Social(stars: 0, followers: 0, following: 0, starsAreExact: true)
+}
+
 struct RateLimit: Sendable, Hashable {
     let limit: Int
     let remaining: Int
@@ -81,6 +98,7 @@ struct MenuSection: Sendable, Hashable {
 
 struct Snapshot: Sendable {
     let viewer: Viewer
+    let social: Social
     let prs: [Item]
     let issues: [Item]
     let review: [Item]

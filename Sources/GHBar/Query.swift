@@ -94,7 +94,24 @@ enum Query {
     /// gerektirecekti. Gomulu metin bu ariza yolunu ortadan kaldiriyor.
     static let document = """
     query($prs: String!, $issues: String!, $review: String!, $first: Int!) {
-      viewer { login name avatarUrl }
+      viewer {
+        login name avatarUrl
+        followers { totalCount }
+        following { totalCount }
+        # Yildiz toplami icin: kendi public repolarin, fork'lar haric,
+        # yildiza gore azalan. Olculdu: bu 100 dugum eklendiginde sorgunun
+        # maliyeti hala 1 puan.
+        repositories(
+          first: 100
+          ownerAffiliations: OWNER
+          isFork: false
+          privacy: PUBLIC
+          orderBy: { field: STARGAZERS, direction: DESC }
+        ) {
+          totalCount
+          nodes { stargazerCount }
+        }
+      }
       prs: search(query: $prs, type: ISSUE, first: $first) {
         issueCount
         nodes { ... on PullRequest {

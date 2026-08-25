@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var sections: [MenuSection] = []
     private var viewer: Viewer?
+    private var social: Social?
     private var rateLimit: RateLimit?
     private var errors: [AppError] = []
     private var lastRefresh: Date?
@@ -140,6 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
 
                 viewer = snapshot.viewer
+                social = snapshot.social
                 rateLimit = snapshot.rateLimit
                 sections = built
                 errors = collected
@@ -160,6 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let menu = menuBuilder.build(MenuBuilder.Input(
             viewer: viewer,
+            social: social,
             sections: sections,
             rateLimit: rateLimit,
             errors: errors,

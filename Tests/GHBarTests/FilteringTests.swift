@@ -31,6 +31,7 @@ private func snapshot(
 ) -> Snapshot {
     Snapshot(
         viewer: Viewer(login: "alice", name: nil, avatarURL: "x"),
+        social: .empty,
         prs: prs, issues: issues, review: review,
         rateLimit: RateLimit(limit: 5000, remaining: 5000, resetAt: Date()),
         truncated: truncated

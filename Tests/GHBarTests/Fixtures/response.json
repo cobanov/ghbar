@@ -4,7 +4,17 @@
       "login": "alice",
       "name": "Alice Smith",
       "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4",
-      "organizations": { "nodes": [{ "login": "acme" }] }
+      "organizations": { "nodes": [{ "login": "acme" }] },
+      "followers": { "totalCount": 2611 },
+      "following": { "totalCount": 74 },
+      "repositories": {
+        "totalCount": 3,
+        "nodes": [
+          { "stargazerCount": 283 },
+          { "stargazerCount": 217 },
+          { "stargazerCount": 11 }
+        ]
+      }
     },
     "prs": {
       "issueCount": 4,

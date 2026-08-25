@@ -230,7 +230,13 @@ struct MenuReplicaView: View {
                 Text("Mert Cobanov").fontWeight(.medium)
                 Text("@cobanov").foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 12).padding(.vertical, 6)
+            .padding(.horizontal, 12).padding(.top, 6)
+
+            // Menudeki `socialItem`in karsiligi: adin altinda tek satir.
+            Text("2,021 stars \u{00B7} 2,611 followers \u{00B7} 74 following")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 38).padding(.bottom, 6)
 
             divider
 
@@ -278,6 +284,7 @@ struct MenuReplicaView: View {
         Rectangle().fill(Color.white.opacity(0.09)).frame(height: 1)
             .padding(.horizontal, 10).padding(.vertical, 4)
     }
+
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())

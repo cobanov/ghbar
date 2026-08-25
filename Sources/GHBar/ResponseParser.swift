@@ -37,6 +37,8 @@ enum ResponseParser {
             avatarURL: avatar
         )
 
+        let social = self.social(from: viewerObject)
+
         var truncated: Set<SectionKind> = []
 
         func search(_ key: String, kind: ItemKind, section: SectionKind) throws -> [Item] {
@@ -64,6 +66,7 @@ enum ResponseParser {
 
         return Snapshot(
             viewer: viewer,
+            social: social,
             prs: prs,
             issues: issues,
             review: review,
@@ -73,6 +76,27 @@ enum ResponseParser {
     }
 
     // MARK: - Private
+
+    /// Sayaclar EKSIKSE hata atilmaz, sifira dusulur. Bunlar menunun sussu;
+    /// biri gelmedi diye bekleyen PR listesini kaybetmek orantisiz olurdu.
+    /// (Eski fixture'lar ve token kapsami dar hesaplar da boylece calisir.)
+    private static func social(from viewer: [String: Any]) -> Social {
+        func count(_ key: String) -> Int {
+            ((viewer[key] as? [String: Any])?["totalCount"] as? Int) ?? 0
+        }
+
+        let repositories = viewer["repositories"] as? [String: Any]
+        let nodes = repositories?["nodes"] as? [[String: Any]] ?? []
+        let stars = nodes.reduce(0) { $0 + (($1["stargazerCount"] as? Int) ?? 0) }
+        let total = repositories?["totalCount"] as? Int ?? nodes.count
+
+        return Social(
+            stars: stars,
+            followers: count("followers"),
+            following: count("following"),
+            starsAreExact: total <= nodes.count
+        )
+    }
 
     /// Deger tipi bir bicimlendirici: ISO8601DateFormatter bir sinif ve Sendable
     /// degil, bu yuzden Swift 6'da statik olarak tutulamiyor. ISO8601FormatStyle
