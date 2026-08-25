@@ -20,27 +20,58 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     private var authorized = false
 
+    /// Izin bir kez soruldu mu. Reddedildiyse yeniden sormanin anlami yok:
+    /// macOS ikinci cagriyi kullaniciya hic gostermeden reddediyor.
+    private var didAsk = false
+
     /// Paket kimligi yoksa (swift run) bildirim altyapisi hic kurulmaz.
     private var isAvailable: Bool { Bundle.main.bundleIdentifier != nil }
 
+    /// Delegate'i baglar ama izin ISTEMEZ.
+    ///
+    /// Izin istemek ilk gercek bildirimin gonderilecegi ana ertelendi. Onceki
+    /// surum acilista soruyordu: kullanici GHBar'i ilk kez calistirdiginda,
+    /// daha giris bile yapmadan, ne icin oldugunu bilmedigi bir izin penceresi
+    /// goruyordu. Baglamsiz sorulan izin hem daha cok reddediliyor hem de App
+    /// Review'in 5.1.1 kalemine takilabiliyor.
     func start() {
         guard isAvailable else {
             NSLog("GHBar: paket disinda calisiliyor, bildirimler kapali")
             return
         }
-        let center = UNUserNotificationCenter.current()
-        center.delegate = self
-        center.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
-            if let error { NSLog("GHBar: bildirim izni hatasi: \(error.localizedDescription)") }
-            Task { @MainActor in self?.authorized = granted }
-        }
+        UNUserNotificationCenter.current().delegate = self
     }
 
-    /// Kullanici reddettiyse bir daha sormayiz; her acilista izin penceresi
-    /// cikarmak rahatsiz edici olurdu.
+    /// Ilk cagrida izin ister, sonrakilerde dogrudan gonderir.
     func notify(about items: [Item]) {
-        guard isAvailable, authorized, !items.isEmpty else { return }
+        guard isAvailable, !items.isEmpty else { return }
+        guard authorized else {
+            requestAuthorization(thenDeliver: items)
+            return
+        }
+        deliver(items)
+    }
 
+    /// Izin penceresi tam da gosterilecek bir bildirim varken cikar: kullanici
+    /// "GHBar bildirim gondermek istiyor" yazisini gordugunde arkasinda gercek
+    /// bir olay oldugunu bilir.
+    private func requestAuthorization(thenDeliver items: [Item]) {
+        guard !didAsk else { return }
+        didAsk = true
+        UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
+                if let error { NSLog("GHBar: bildirim izni hatasi: \(error.localizedDescription)") }
+                Task { @MainActor in
+                    self?.authorized = granted
+                    // Izni yeni veren kullanici bu turun bildirimlerini de
+                    // gormeli; yoksa onayladigi sey bir sonraki yenilemeye
+                    // kadar sessiz kalir.
+                    if granted { self?.deliver(items) }
+                }
+            }
+    }
+
+    private func deliver(_ items: [Item]) {
         // Cok sayida yeni oge geldiginde tek tek bildirim yagdirmak yerine
         // tek bir ozet gonderilir.
         if items.count > 5 {

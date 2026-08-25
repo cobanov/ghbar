@@ -106,3 +106,9 @@ that one needs a Developer ID certificate.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+GHBar is an independent open-source project. It is not affiliated with,
+endorsed by or sponsored by GitHub, Inc. “GitHub” is a trademark of
+GitHub, Inc.
