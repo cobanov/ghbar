@@ -241,13 +241,10 @@ struct MenuReplicaView: View {
             divider
 
             section("Pull Requests", rows: prs)
-            markAll
             divider
             section("Issues", rows: issues)
-            markAll
             divider
             section("Review Requested", rows: review)
-            markAll
             divider
 
             sectionHeader("API")
@@ -265,6 +262,7 @@ struct MenuReplicaView: View {
             plain("Open GitHub", symbol: "globe")
             plain("Refresh", symbol: "arrow.clockwise")
             plain("Settings…", symbol: "gearshape")
+            markAll
         }
         .font(.system(size: 13))
         .padding(.vertical, 8)

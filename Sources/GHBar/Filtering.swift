@@ -3,22 +3,28 @@ import Foundation
 enum Filtering {
 
     static func sections(from snapshot: Snapshot, settings: Settings) -> [MenuSection] {
-        // Review istenmis olmak daha guclu bir sinyal: ayni PR iki aramada da
-        // ciktiysa yalniz Review Requested'da gosterilir.
-        let review = clean(snapshot.review, settings: settings)
-        let reviewURLs = Set(review.map(\.url))
-
-        let prs = clean(snapshot.prs, settings: settings)
-            .filter { !reviewURLs.contains($0.url) }
-        let issues = clean(snapshot.issues, settings: settings)
-
-        let candidates: [(SectionKind, [Item])] = [
-            (.pullRequests, prs),
-            (.issues, issues),
-            (.reviewRequested, review),
+        let searches: [SectionKind: [Item]] = [
+            .changesRequested: snapshot.changesRequested,
+            .reviewRequested: snapshot.review,
+            .pullRequests: snapshot.prs,
+            .issues: snapshot.issues,
+            .myPullRequests: snapshot.myPullRequests,
         ]
 
-        return candidates.compactMap { kind, items in
+        // Ayni PR birden fazla aramada cikabilir; onceligi `displayOrder`
+        // veriyor, yani en guclu sinyal hem once geliyor hem de kopyalari
+        // eliyor.
+        var claimed: Set<String> = []
+        func take(_ kind: SectionKind) -> [Item] {
+            let kept = clean(searches[kind] ?? [], settings: settings)
+                .filter { !claimed.contains($0.url) }
+            claimed.formUnion(kept.map(\.url))
+            return kept
+        }
+
+        return SectionKind.displayOrder.compactMap { kind in
+            let items = take(kind)
+            guard settings.visibleSections.contains(kind) else { return nil }
             guard !items.isEmpty else { return nil }   // bos bolum hic gosterilmez
             return MenuSection(
                 kind: kind,

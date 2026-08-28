@@ -31,10 +31,12 @@ enum ResponseParser {
               let avatar = viewerObject["avatarUrl"] as? String else {
             throw ParseError.malformed("missing viewer")
         }
+        let orgNodes = (viewerObject["organizations"] as? [String: Any])?["nodes"] as? [[String: Any]] ?? []
         let viewer = Viewer(
             login: login,
             name: viewerObject["name"] as? String,
-            avatarURL: avatar
+            avatarURL: avatar,
+            organizations: orgNodes.compactMap { $0["login"] as? String }
         )
 
         let social = self.social(from: viewerObject)
@@ -55,6 +57,16 @@ enum ResponseParser {
         let prs    = try search("prs",    kind: .pullRequest, section: .pullRequests)
         let issues = try search("issues", kind: .issue,       section: .issues)
         let review = try search("review", kind: .pullRequest, section: .reviewRequested)
+        let changesRequested = try search(
+            "changesRequested",
+            kind: .pullRequest,
+            section: .changesRequested
+        )
+        let myPullRequests = try search(
+            "myPullRequests",
+            kind: .pullRequest,
+            section: .myPullRequests
+        )
 
         guard let limitObject = payload["rateLimit"] as? [String: Any],
               let limit = limitObject["limit"] as? Int,
@@ -70,6 +82,8 @@ enum ResponseParser {
             prs: prs,
             issues: issues,
             review: review,
+            changesRequested: changesRequested,
+            myPullRequests: myPullRequests,
             rateLimit: RateLimit(limit: limit, remaining: remaining, resetAt: resetAt),
             truncated: truncated
         )
