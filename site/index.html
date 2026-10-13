@@ -106,8 +106,8 @@
       <h3>Other people's work only</h3>
       <p>
         Pull requests and issues <strong>other people</strong> opened on your
-        repositories, plus PRs waiting on your review. Your own drafts and
-        threads you merely subscribed to never appear.
+        repositories, plus PRs waiting on your review. Your own pull requests
+        get a tab of their own; threads you merely subscribed to never appear.
       </p>
     </article>
 
@@ -115,7 +115,7 @@
       <h3>A noisy repo folds away</h3>
       <p>
         More than three open items in one repository and they collapse into a
-        single row with a submenu. The instinct otherwise is to mute the repo
+        single row that opens in place. The instinct otherwise is to mute the repo
         entirely — and then miss the one real contribution it gets.
       </p>
     </article>
@@ -144,21 +144,23 @@
   <div class="container section">
     <h2>One request, one API point</h2>
     <p class="section-lede">
-      A single GraphQL query per refresh covers three searches, your profile and
+      A single GraphQL query per refresh covers all five tabs, your profile and
       the quota status. At the default five-minute interval that is 12 points an
       hour — <strong>0.24%</strong> of GitHub's 5,000.
     </p>
 
-    <pre class="code glass"><code>is:pr    is:open user:@me -author:@me     <span class="c">→ Pull Requests</span>
-is:issue is:open user:@me -author:@me     <span class="c">→ Issues</span>
-is:pr    is:open review-requested:@me     <span class="c">→ Review Requested</span></code></pre>
+    <pre class="code glass"><code>is:pr    is:open user:@me -author:@me                 <span class="c">→ Pull requests</span>
+is:issue is:open user:@me -author:@me                 <span class="c">→ Issues</span>
+is:pr    is:open review-requested:@me                 <span class="c">→ To review</span>
+is:pr    is:open author:@me review:changes_requested  <span class="c">→ Changes</span>
+is:pr    is:open author:@me                           <span class="c">→ My PRs</span></code></pre>
 
     <div class="cards cards-3">
       <article class="card glass">
         <h3>No account to create</h3>
         <p>
-          Sign in with GitHub's device flow, or let GHBar borrow your
-          <code>gh</code> token automatically. No sign-up, no password to hand
+          Sign in with GitHub's device flow, or continue as the account your
+          <code>gh</code> CLI uses, in one click. No sign-up, no password to hand
           over, no server in the middle.
         </p>
       </article>
@@ -217,8 +219,8 @@ is:pr    is:open review-requested:@me     <span class="c">→ Review Requested</
     </ul>
     <p class="fineprint">
       GHBar signs in with GitHub's device flow — no account to create. Already use
-      the <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>)? GHBar
-      borrows its token automatically and you never see a sign-in screen at all.
+      the <a href="https://cli.github.com">GitHub CLI</a> (<code>gh</code>)? The welcome
+      window offers to continue as that account in one click.
     </p>
   </div>
 </section>
