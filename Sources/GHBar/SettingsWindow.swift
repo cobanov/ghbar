@@ -263,24 +263,18 @@ struct GeneralPane: View {
     @Default(.showChangesRequested) private var showChangesRequested
     @Default(.showMyPullRequests) private var showMyPullRequests
     @Default(.showEmptySections) private var showEmptySections
-    @Default(.menuRowBudget) private var menuRowBudget
     @Default(.rateLimitVisibility) private var rateLimitVisibility
     @Default(.repoGroupThreshold) private var groupThreshold
 
     var body: some View {
         Form {
-            Section("Menu sections") {
+            Section("Tabs") {
                 Toggle("Pull Requests", isOn: $showPullRequests)
                 Toggle("Issues", isOn: $showIssues)
                 Toggle("Review Requested", isOn: $showReviewRequested)
                 Toggle("Changes Requested", isOn: $showChangesRequested)
                 Toggle("My Pull Requests", isOn: $showMyPullRequests)
-                Toggle("Keep empty sections visible", isOn: $showEmptySections)
-                Picker("Menu height", selection: $menuRowBudget) {
-                    Text("Compact").tag(16)
-                    Text("Standard").tag(24)
-                    Text("Tall").tag(32)
-                }
+                Toggle("Keep empty tabs visible", isOn: $showEmptySections)
                 Picker("Show rate limit", selection: $rateLimitVisibility) {
                     Text("Never").tag(RateLimitVisibility.never.rawValue)
                     Text("When low").tag(RateLimitVisibility.whenLow.rawValue)

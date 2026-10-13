@@ -2,10 +2,11 @@ import AppKit
 import Defaults
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
 
-    private var statusItem: NSStatusItem!
-    private var menuBuilder: MenuBuilder!
+    private var panel: StatusPanel!
+    private let panelModel = PanelModel()
+    private var statusItem: NSStatusItem { panel.statusItem }
     private let seenStore = SeenStore(url: SeenStore.defaultURL)
     private let notifier = Notifier()
     private let welcome = WelcomeController()
@@ -28,20 +29,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // bu satir swift run ile calistirirken ayni isi goruyor.
         NSApp.setActivationPolicy(.accessory)
 
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = Icons.statusBar()
+        panel = StatusPanel(style: PanelPreview.style) { PanelView(model: panelModel) }
+        panel.onOpen = { [weak self] in self?.panelWillOpen() }
+        panelModel.actions = PanelActions(
+            open: { [weak self] item in self?.panel.close(); self?.open(item.url, markSeen: true) },
+            markAllSeen: { [weak self] in self?.markAllSeen() },
+            markSectionSeen: { [weak self] kind in self?.markSeen(kind) },
+            openProfile: { [weak self] in self?.panel.close(); self?.openProfile() },
+            refresh: { [weak self] in self?.refresh() },
+            openSettings: { [weak self] in self?.panel.close(); self?.openSettings() },
+            signIn: { [weak self] in self?.panel.close(); self?.openWelcome() },
+            toggleOrganization: { [weak self] org in self?.toggleOrganization(org) },
+            clearOrganizations: { [weak self] in self?.clearOrganizations() },
+            quit: { [weak self] in self?.quit() }
+        )
+        statusItem.button?.image = StatusIcon.image()
+        statusItem.button?.imagePosition = .imageLeading
         // Sayac esit genislikli rakamlarla: sayi degistiginde menu cubugundaki
         // komsu ikonlar saga sola oynamasin.
         statusItem.button?.font = .monospacedDigitSystemFont(
             ofSize: NSFont.systemFontSize, weight: .regular
         )
 
-        menuBuilder = MenuBuilder(target: self)
         welcome.onSignedIn = { [weak self] in self?.refresh() }
         settingsWindow.onSignOut = { [weak self] in self?.signOut() }
         notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
-        // performClick menu cubugundaki dugmeye programatik tiklama — menuyu acar.
-        notifier.onOpenSummary = { [weak self] in self?.statusItem.button?.performClick(nil) }
+        notifier.onOpenSummary = { [weak self] in self?.panel.open() }
         notifier.start()
         rebuildMenu()
 
@@ -65,8 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Yalnizca cizimi degistiren ayarlar. Yukaridaki listeye konsaydi her
         // isaret bir GitHub istegi harcardi; elde olan veri zaten yeterli.
         displayObserver = Task { [weak self] in
-            for await _ in Defaults.updates([.showEmptySections, .menuRowBudget,
-                                             .rateLimitVisibility], initial: false) {
+            for await _ in Defaults.updates([.showEmptySections, .rateLimitVisibility], initial: false) {
                 guard let self else { return }
                 self.rebuildMenu()
             }
@@ -178,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.title = unseen > 0 ? " \(unseen)" : ""
 
         let settings = Settings.fromDefaults()
-        let menu = menuBuilder.build(MenuBuilder.Input(
+        panelModel.input = PanelInput(
             viewer: viewer,
             social: social,
             sections: sections,
@@ -193,25 +205,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             repositoryFilterActive: !settings.repoList.isEmpty,
             visibleSections: settings.visibleSections,
             showEmptySections: settings.showEmptySections,
-            workRowBudget: settings.menuRowBudget,
-            minRowsPerSection: settings.minRowsPerSection,
             rateLimitVisibility: settings.rateLimitVisibility,
-            maxRowsPerSection: settings.maxRowsPerSection,
             isSeen: { [seenStore] url in seenStore.isSeen(url) },
             now: Date()
-        ))
-        menu.delegate = self
-        statusItem.menu = menu
+        )
+        panel.contentChanged()
     }
 
     // MARK: - Menu eylemleri
-
-    @objc func openItem(_ sender: NSMenuItem) {
-        guard let item = sender.representedObject as? Item else { return }
-        // Tiklamak hem aciyor hem gorulmus isaretliyor; ayrica isaretlemeye
-        // gerek kalmiyor.
-        open(item.url, markSeen: true)
-    }
 
     /// Menuden ve bildirimden ortak kullanilan acma yolu.
     private func open(_ address: String, markSeen: Bool) {
@@ -224,29 +225,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildMenu()
     }
 
-    @objc func markSectionSeen(_ sender: NSMenuItem) {
-        guard let raw = sender.representedObject as? String,
-              let kind = SectionKind(rawValue: raw),
-              let section = sections.first(where: { $0.kind == kind }) else { return }
+    func markSeen(_ kind: SectionKind) {
+        guard let section = sections.first(where: { $0.kind == kind }) else { return }
 
         seenStore.markSeen(section.items.map(\.url), at: Date())
         try? seenStore.save()
         rebuildMenu()
     }
 
-    @objc func markAllSeen() {
+    func markAllSeen() {
         seenStore.markSeen(sections.flatMap(\.items).map(\.url), at: Date())
         try? seenStore.save()
         rebuildMenu()
     }
 
-    @objc func openProfile() {
+    func openProfile() {
         guard let viewer, let url = URL(string: viewer.profileURL) else { return }
         NSWorkspace.shared.open(url)
     }
 
-    @objc func toggleOrganization(_ sender: NSMenuItem) {
-        guard let org = sender.representedObject as? String else { return }
+    func toggleOrganization(_ org: String) {
         var selected = Defaults[.organizations]
         if selected.contains(org) {
             selected.removeAll { $0 == org }
@@ -259,15 +257,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         rebuildMenu()
     }
 
-    @objc func clearOrganizations() {
+    func clearOrganizations() {
         Defaults[.organizations] = []
         // toggleOrganization ile ayni sebep: yenileme ag turunu bekliyor.
         rebuildMenu()
     }
 
-    @objc func openWelcome() { welcome.show() }
+    func openWelcome() { welcome.show() }
 
-    @objc func openSettings() { settingsWindow.show() }
+    func openSettings() { settingsWindow.show() }
 
     private func signOut() {
         Keychain.delete()
@@ -282,15 +280,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         refresh()
     }
 
-    @objc func refreshNow() { refresh() }
+    func quit() { NSApp.terminate(nil) }
 
-    @objc func quit() { NSApp.terminate(nil) }
+    // MARK: - Panel
 
-    // MARK: - NSMenuDelegate
-
-    /// Menuyu art arda acip kapatmak gereksiz istek uretmesin diye 30 saniyelik
+    /// Paneli art arda acip kapatmak gereksiz istek uretmesin diye 30 saniyelik
     /// alt sinir var.
-    func menuWillOpen(_ menu: NSMenu) {
+    private func panelWillOpen() {
+        panelModel.input?.now = Date()
         // lastRefresh nil = henuz hic basarili yenileme olmadi (ilk deneme
         // basarisiz olmus olabilir); menuyu acmak yeniden denemek icin en
         // dogru an. distantPast, 30 saniyelik esigi otomatik gecirir.
