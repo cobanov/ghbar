@@ -3,62 +3,88 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>GHBar privacy policy</title>
+<title>GHBar — Privacy Policy</title>
 <meta name="description" content="GHBar collects no data. This page explains what that means in practice." />
-<meta name="theme-color" content="#13612e" />
 <link rel="icon" type="image/png" href="/assets/ghbar-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@100..125,400..900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 
-<header class="menubar">
-  <a class="app" href="/">GHBar</a>
-  <a href="/#install">Install</a>
-  <a class="optional" href="https://github.com/cobanov/ghbar">GitHub</a>
-  <a class="optional" href="/privacy" aria-current="page">Privacy</a>
+<header class="nav-wrap">
+  <nav class="nav glass">
+    <a class="brand" href="/">
+      <img src="/assets/ghbar-icon.png" alt="" width="28" height="28" />
+      <span>GHBar</span>
+    </a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="https://github.com/cobanov/ghbar">GitHub</a>
+    </div>
+  </nav>
 </header>
 
-<main class="page">
-  <h1>Privacy policy</h1>
-  <p class="updated">Last updated October 13, 2026</p>
+<main>
+<section class="container section" style="max-width: 720px;">
+  <h1>Privacy Policy</h1>
+  <p class="section-lede">Last updated: August 19, 2026</p>
 
-  <dl class="facts">
-    <div>
-      <dt>GHBar collects no data</dt>
-      <dd><p>No analytics, no telemetry, no crash reporting and no accounts of our own.
-      GHBar has no server: the app talks to GitHub and to nothing else.</p></dd>
+  <div style="display: flex; flex-direction: column; gap: 18px; margin-top: 34px;">
+    <div class="card glass">
+      <h3>GHBar collects no data</h3>
+      <p>
+        No analytics, no telemetry, no crash reporting, no accounts of our own.
+        GHBar has no server: the app talks directly to GitHub's API and to
+        nothing else.
+      </p>
     </div>
-    <div>
-      <dt>What stays on your Mac</dt>
-      <dd><p>Your GitHub token (in the macOS Keychain), the record of which items you've
-      seen, your settings, and cached profile pictures. None of it leaves your Mac.</p></dd>
+
+    <div class="card glass">
+      <h3>What stays on your Mac</h3>
+      <p>
+        Your GitHub token (in the macOS Keychain), the record of which items
+        you've seen, your settings, and a cached copy of your GitHub avatar.
+        None of it ever leaves your machine.
+      </p>
     </div>
-    <div>
-      <dt>What GHBar sends to GitHub</dt>
-      <dd><p>The searches needed to list the pull requests and issues on your repositories,
-      sent to <code>api.github.com</code> with your token, and requests for profile pictures
-      from GitHub's image server. That traffic is covered by
-      <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.</p></dd>
+
+    <div class="card glass">
+      <h3>What GHBar sends to GitHub</h3>
+      <p>
+        The search queries needed to list the pull requests and issues on your
+        repositories, authenticated with your token. That traffic is between
+        your Mac and <code>api.github.com</code> — it is covered by
+        <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>,
+        not ours.
+      </p>
     </div>
-    <div>
-      <dt>Questions</dt>
-      <dd><p>The whole app is open source:
-      <a href="https://github.com/cobanov/ghbar">read the code</a> or
-      <a href="https://github.com/cobanov/ghbar/issues">open an issue</a>.</p></dd>
+
+    <div class="card glass">
+      <h3>Questions</h3>
+      <p>
+        The entire app is open source —
+        <a href="https://github.com/cobanov/ghbar">read the code</a> or
+        <a href="https://github.com/cobanov/ghbar/issues">open an issue</a>.
+      </p>
     </div>
-  </dl>
+  </div>
+</section>
 </main>
 
 <footer>
-  <nav>
-    <a href="/">Home</a>
-    <a href="https://github.com/cobanov/ghbar">Source on GitHub</a>
-  </nav>
-  <p>GHBar is an independent project. It is not affiliated with, endorsed by or sponsored by
-  GitHub, Inc. &ldquo;GitHub&rdquo; is a trademark of GitHub, Inc.</p>
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <img src="/assets/ghbar-icon.png" alt="" width="24" height="24" />
+      <span>GHBar</span>
+    </div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="https://github.com/cobanov/ghbar">GitHub</a>
+    </div>
+    <p class="footer-note">GHBar is an independent open-source project. It is not affiliated with, endorsed by or sponsored by GitHub, Inc. &ldquo;GitHub&rdquo; is a trademark of GitHub, Inc.</p>
+  </div>
 </footer>
 
 </body>
