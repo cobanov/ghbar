@@ -71,7 +71,7 @@ struct GitHubClient {
         case 200:
             return
         case 401:
-            throw AppError.ghNotAuthenticated
+            throw AppError.unauthorized
         case 403, 429:
             // Gercek sifirlanma zamani cevap basliklarinda geliyor; Asama 1'de
             // bir saat sonrasi yeterince iyi bir tahmin.

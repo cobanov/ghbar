@@ -11,7 +11,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let notifier = Notifier()
     private let welcome = WelcomeController()
     private let settingsWindow = SettingsController()
-    private var isSignedOut = false
+    private let session = AuthSession.shared
+    /// The welcome window opens by itself once per launch while nobody is signed in.
+    private var welcomedThisLaunch = false
     private var settingsObserver: Task<Void, Never>?
     private var displayObserver: Task<Void, Never>?
 
@@ -51,8 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ofSize: NSFont.systemFontSize, weight: .regular
         )
 
-        welcome.onSignedIn = { [weak self] in self?.refresh() }
+        // After signing in, show what is now there: the panel opens and fills as the first
+        // refresh lands.
+        welcome.onSignedIn = { [weak self] in
+            self?.refresh()
+            self?.panel.open()
+        }
         settingsWindow.onSignOut = { [weak self] in self?.signOut() }
+        settingsWindow.onSignIn = { [weak self] in self?.openWelcome() }
         notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
         notifier.onOpenSummary = { [weak self] in self?.panel.open() }
         notifier.start()
@@ -115,16 +123,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rebuildMenu()
 
             do {
-                guard let token = TokenProvider.current() else {
-                    // Oturum yoklugu hata satiri degil, menude eyleme cagri.
-                    isSignedOut = true
-                    sections = []
-                    errors = []
-                    viewer = nil
+                guard let token = session.token() else {
+                    // Oturum yoklugu hata satiri degil, panelde eyleme cagri.
+                    clearAccountData()
                     rebuildMenu()
+                    if !welcomedThisLaunch {
+                        welcomedThisLaunch = true
+                        welcome.show()
+                    }
                     return
                 }
-                isSignedOut = false
+                welcomedThisLaunch = true
                 let settings = Settings.fromDefaults()
                 let queries = Query.build(settings)
 
@@ -143,10 +152,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let built = Filtering.sections(from: snapshot, settings: settings)
                 let all = built.flatMap(\.items)
 
-                // Ayarlar > Accounts icin oturum bilgisi (yalniz OAuth'ta;
-                // gh token'inda nil kalir ve pane 'gh kullaniliyor' der) ve
+                // Ayarlar > Accounts icin kim oldugu (her iki kaynakta da) ve
                 // Ayarlar > Repositories icin aktivite listesi.
-                Defaults[.signedInLogin] = Keychain.token() != nil ? snapshot.viewer.login : nil
+                session.loaded(login: snapshot.viewer.login)
                 Defaults[.knownOrganizations] = snapshot.viewer.organizations
                 Defaults[.knownRepos] = Dictionary(grouping: all, by: \.repository)
                     .mapValues(\.count)
@@ -175,6 +183,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 sections = built
                 errors = collected
                 lastRefresh = Date()
+            } catch AppError.unauthorized {
+                // GitHub token'i reddetti: hata satiri degil, yeniden giris cagrisi.
+                session.markExpired()
+                clearAccountData()
             } catch let error as AppError {
                 errors = [error]
             } catch {
@@ -197,7 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rateLimit: rateLimit,
             errors: errors,
             lastRefresh: lastRefresh,
-            isSignedOut: isSignedOut,
+            auth: session.state,
             isRefreshing: refreshGate.isRunning,
             showOwner: settings.accounts.count > 1 || !settings.organizations.isEmpty,
             knownOrganizations: Defaults[.knownOrganizations],
@@ -267,17 +279,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func openSettings() { settingsWindow.show() }
 
+    /// Sign Out means signed out: the token goes, and a signed-in `gh` is not picked up again
+    /// until the user chooses it.
     private func signOut() {
-        Keychain.delete()
-        Defaults[.signedInLogin] = nil
+        session.signOut()
         Defaults[.knownOrganizations] = []
         seenStore.reset()
+        clearAccountData()
+        rebuildMenu()
+    }
+
+    /// What belonged to the account that is no longer signed in.
+    private func clearAccountData() {
         sections = []
+        errors = []
         viewer = nil
+        social = nil
         rateLimit = nil
-        // Direct varyantta gh varsa zincir ona duser (spec §5 sirasi);
-        // yoksa oturumsuz duruma gecilir.
-        refresh()
+        lastRefresh = nil
     }
 
     func quit() { NSApp.terminate(nil) }

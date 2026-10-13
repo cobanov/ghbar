@@ -62,7 +62,7 @@ enum PanelPreview {
         model.input = PanelInput(
             viewer: Viewer(login: "cobanov", name: "Mert Cobanov", avatarURL: ""),
             social: Social(stars: 2021, followers: 2611, following: 74, starsAreExact: true),
-            sections: sections, rateLimit: nil, errors: [], lastRefresh: now, isSignedOut: false,
+            sections: sections, rateLimit: nil, errors: [], lastRefresh: now, auth: .signedIn(.oauth),
             showOwner: false, visibleSections: Set(SectionKind.allCases),
             isSeen: { seen.contains($0) }, now: now)
 

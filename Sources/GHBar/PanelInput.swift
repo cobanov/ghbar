@@ -9,7 +9,8 @@ struct PanelInput {
     var rateLimit: RateLimit?
     var errors: [AppError]
     var lastRefresh: Date?
-    var isSignedOut: Bool
+    var auth: AuthState
+    var isSignedOut: Bool { !auth.isSignedIn }
     var isRefreshing: Bool = false
     var showOwner: Bool
     var knownOrganizations: [String] = []

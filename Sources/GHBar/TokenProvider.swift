@@ -2,22 +2,17 @@ import Foundation
 
 enum TokenProvider {
 
-    /// Kimlik zinciri (spec §5): 1) Keychain — kullanici acikca giris
-    /// yaptiysa o kazanir; 2) gh CLI — gelistirici icin sifir surtunme;
-    /// 3) yok.
+    /// gh'nin token'i, varsa. Hangi kaynagin kullanilacagina `Auth.resolve` karar verir.
     ///
     /// MAS varyantinda gh adimi DERLEME DISI (#if MAS): sandbox alt surec
     /// calistiramaz, kacak bir cagri sessiz bozulma olurdu. Bu, #if MAS'in
     /// koddaki tek kullanim yeridir (spec §20 korkuluk #1).
-    static func current(
-        keychainService: String = Keychain.defaultService,
-        ghToken: () -> String? = { try? TokenProvider.ghToken() }
-    ) -> String? {
-        if let token = Keychain.token(service: keychainService) { return token }
-        #if !MAS
-        if let token = ghToken() { return token }
-        #endif
+    static func ghTokenIfAvailable() -> String? {
+        #if MAS
         return nil
+        #else
+        return try? ghToken()
+        #endif
     }
 
     /// `.app` icinden baslatilan bir surec kabuk ortamini miras almaz — PATH

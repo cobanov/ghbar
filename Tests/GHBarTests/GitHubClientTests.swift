@@ -32,7 +32,7 @@ struct GitHubClientTests {
 
     @Test("401 oturum hatasina cevrilir") func unauthorized() throws {
         let client = GitHubClient(token: "bad")
-        #expect(throws: AppError.ghNotAuthenticated) {
+        #expect(throws: AppError.unauthorized) {
             try client.validate(statusCode: 401)
         }
     }

@@ -46,22 +46,50 @@ struct AppErrorTests {
     }
 }
 
-@Suite("TokenProvider.current")
-struct TokenProviderChainTests {
-    let service = "run.cobanov.ghbar.tests.chain"
-
-    @Test("keychain bos ve gh yoksa nil") func nilWhenNothing() {
-        Keychain.delete(service: service)
-        #expect(TokenProvider.current(keychainService: service, ghToken: { nil }) == nil)
+@Suite("Auth.resolve")
+struct AuthResolveTests {
+    private func inputs(_ recorded: AuthSource?, signedOut: Bool = false, existing: Bool = true,
+                        keychain: String? = nil, gh: String? = nil) -> Auth.Inputs {
+        Auth.Inputs(recorded: recorded, signedOutByUser: signedOut, existingInstall: existing,
+                    keychainToken: { keychain }, ghToken: { gh })
     }
 
-    @Test("keychain bosken gh token'i kullanilir (direct varyant)") func ghFallback() {
-        Keychain.delete(service: service)
-        let token = TokenProvider.current(keychainService: service, ghToken: { "gho_fromgh" })
-        #if MAS
-        #expect(token == nil)          // MAS'ta gh yolu derleme disi
-        #else
-        #expect(token == "gho_fromgh")
-        #endif
+    @Test("nothing anywhere: signed out") func nothing() {
+        #expect(Auth.resolve(inputs(nil)) == nil)
+    }
+
+    @Test("first launch adopts the Keychain token before gh") func keychainFirst() {
+        let r = Auth.resolve(inputs(nil, keychain: "gho_oauth", gh: "gho_gh"))
+        #expect(r?.token == "gho_oauth" && r?.source == .oauth)
+    }
+
+    @Test("an install from before 0.3 keeps using gh") func ghAdopted() {
+        let r = Auth.resolve(inputs(nil, gh: "gho_gh"))
+        #expect(r?.token == "gho_gh" && r?.source == .githubCLI)
+    }
+
+    @Test("a new install is not signed in through gh without choosing it") func newInstallAsks() {
+        #expect(Auth.resolve(inputs(nil, existing: false, gh: "gho_gh")) == nil)
+        #expect(Auth.resolve(inputs(nil, existing: false, keychain: "gho_oauth"))?.source == .oauth)
+    }
+
+    @Test("after Sign Out, a signed-in gh is not picked up again") func signOutSticks() {
+        #expect(Auth.resolve(inputs(nil, signedOut: true, gh: "gho_gh")) == nil)
+    }
+
+    @Test("a recorded source is the only one tried") func recordedOnly() {
+        #expect(Auth.resolve(inputs(.oauth, gh: "gho_gh")) == nil)
+        #expect(Auth.resolve(inputs(.githubCLI, keychain: "gho_oauth")) == nil)
+        #expect(Auth.resolve(inputs(.githubCLI, gh: "gho_gh"))?.source == .githubCLI)
+    }
+}
+
+@Suite("AuthState")
+struct AuthStateTests {
+    @Test("source and signed-in flag") func basics() {
+        #expect(AuthState.signedIn(.oauth).isSignedIn)
+        #expect(!AuthState.expired(.oauth).isSignedIn)
+        #expect(AuthState.expired(.githubCLI).source == .githubCLI)
+        #expect(AuthState.signedOut.source == nil)
     }
 }

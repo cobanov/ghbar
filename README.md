@@ -52,8 +52,8 @@ opens without a Gatekeeper warning.
 
 That's it. GHBar signs in with GitHub's device flow — no account to create, no
 password to hand over. If you already use the
-[GitHub CLI](https://cli.github.com) (`gh`), GHBar picks its token up
-automatically and you never see a sign-in screen at all.
+[GitHub CLI](https://cli.github.com) (`gh`), the welcome window offers to
+continue as the account `gh` is signed in with, in one click.
 
 ---
 

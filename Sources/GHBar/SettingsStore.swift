@@ -29,6 +29,10 @@ extension Defaults.Keys {
     /// zorunda kalmaz (spec §8: yazim hatasi sessizce hicbir seyi filtrelemez).
     static let knownRepos = Key<[String: Int]>("knownRepos", default: [:])
     static let signedInLogin = Key<String?>("signedInLogin", default: nil)
+    /// `AuthSource` raw value: where the token comes from. nil until one is adopted.
+    static let authSource = Key<String?>("authSource", default: nil)
+    /// Set by Sign Out, so a signed-in `gh` is not picked up again behind the user's back.
+    static let signedOutByUser = Key<Bool>("signedOutByUser", default: false)
     static let includePrivateRepos = Key<Bool>("includePrivateRepos", default: true)
 }
 

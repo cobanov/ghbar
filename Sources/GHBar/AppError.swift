@@ -11,6 +11,8 @@ enum AppError: Error, Equatable {
     case notSignedIn
     case ghNotFound
     case ghNotAuthenticated
+    /// GitHub answered 401: the token was revoked or expired.
+    case unauthorized
     case network(String)
     case graphQL(String)
     case parse(String)
@@ -26,6 +28,8 @@ enum AppError: Error, Equatable {
             "GitHub CLI not found — install gh"
         case .ghNotAuthenticated:
             "Not signed in — run: gh auth login"
+        case .unauthorized:
+            "GitHub no longer accepts this sign-in"
         case .network:
             "No connection"
         case .graphQL(let message):

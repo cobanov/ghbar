@@ -5,6 +5,7 @@ import Defaults
 final class SettingsController {
 
     var onSignOut: (() -> Void)?
+    var onSignIn: (() -> Void)?
     private var window: NSWindow?
 
     func show() {
@@ -13,7 +14,8 @@ final class SettingsController {
             NSApp.activate()
             return
         }
-        let root = SettingsView(onSignOut: { [weak self] in self?.onSignOut?() })
+        let root = SettingsView(onSignOut: { [weak self] in self?.onSignOut?() },
+                                onSignIn: { [weak self] in self?.onSignIn?() })
         let window = NSWindow(contentViewController: NSHostingController(rootView: root))
         window.title = "GHBar Settings"
         window.styleMask = [.titled, .closable]
@@ -27,6 +29,7 @@ final class SettingsController {
 
 struct SettingsView: View {
     var onSignOut: () -> Void
+    var onSignIn: () -> Void
     @State private var selectedTab = Tab.accounts
 
     private enum Tab: String, CaseIterable {
@@ -70,7 +73,7 @@ struct SettingsView: View {
 
             switch selectedTab {
             case .accounts:
-                AccountsPane(onSignOut: onSignOut)
+                AccountsPane(onSignOut: onSignOut, onSignIn: onSignIn)
             case .repositories:
                 RepositoriesPane()
             case .general:
@@ -85,7 +88,9 @@ struct SettingsView: View {
 
 struct AccountsPane: View {
     var onSignOut: () -> Void
-    @Default(.signedInLogin) private var signedInLogin
+    var onSignIn: () -> Void
+    @ObservedObject private var session = AuthSession.shared
+    @State private var confirmingSignOut = false
     @Default(.accounts) private var accounts
     @Default(.organizations) private var organizations
     @Default(.knownOrganizations) private var knownOrganizations
@@ -98,6 +103,23 @@ struct AccountsPane: View {
     var body: some View {
         Form {
             sessionSection
+            // Watching other accounts and organizations needs a signed-in account to ask with.
+            if session.state.isSignedIn {
+                watchedSections
+            }
+        }
+        .formStyle(.grouped)
+        .confirmationDialog("Sign out of GitHub?", isPresented: $confirmingSignOut) {
+            Button("Sign Out", role: .destructive, action: onSignOut)
+        } message: {
+            Text(session.state.source == .githubCLI
+                 ? "GHBar stops using the GitHub CLI's account. gh itself stays signed in."
+                 : "GHBar forgets its GitHub token. Your seen and unseen marks are cleared.")
+        }
+    }
+
+    @ViewBuilder
+    private var watchedSections: some View {
             Section("Watched accounts") {
                 ForEach(accounts, id: \.self) { account in
                     HStack {
@@ -133,8 +155,6 @@ struct AccountsPane: View {
                 Text("Checked organizations show assigned pull requests, issues, and review requests.")
                     .font(.caption).foregroundStyle(.tertiary)
             }
-        }
-        .formStyle(.grouped)
     }
 
     private func organizationBinding(_ org: String) -> Binding<Bool> {
@@ -150,18 +170,65 @@ struct AccountsPane: View {
         )
     }
 
+    /// Who GHBar is signed in as and how, or what to do when it is not.
     @ViewBuilder
     private var sessionSection: some View {
-        Section {
-            if let login = signedInLogin {
-                LabeledContent("Signed in as", value: "@\(login)")
-                Button("Sign Out", role: .destructive) { onSignOut() }
-            } else {
-                // Direct varyantta gh token'iyla calisiyor olabiliriz.
-                Text("Using the GitHub CLI token (gh).")
-                    .foregroundStyle(.secondary)
+        Section("GitHub account") {
+            switch session.state {
+            case .signedIn(let source):
+                HStack(spacing: 12) {
+                    accountPicture
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.login.map { "@\($0)" } ?? "Signed in").font(.headline)
+                        Text(source == .oauth ? "Signed in with GitHub" : "Using the GitHub CLI's account")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Sign Out…") { confirmingSignOut = true }
+                }
+                if source == .oauth {
+                    LabeledContent("Repository access") {
+                        HStack {
+                            Text(session.privateAccess ? "Public and private" : "Public only")
+                                .foregroundStyle(.secondary)
+                            Button("Change…", action: onSignIn)
+                        }
+                    }
+                } else {
+                    LabeledContent("Repository access", value: "Whatever gh can see")
+                }
+
+            case .expired(let source):
+                Label(source == .oauth
+                      ? "GitHub no longer accepts this sign-in. It may have been revoked or have expired."
+                      : "The GitHub CLI is signed out. Run gh auth login, or sign in with GitHub here.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Button("Sign In Again…", action: onSignIn)
+                    .buttonStyle(.borderedProminent)
+
+            case .signedOut:
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Not signed in").font(.headline)
+                    Text("Sign in to see the pull requests and issues people open on your repositories.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Button("Sign In…", action: onSignIn)
+                    .buttonStyle(.borderedProminent)
             }
         }
+    }
+
+    private var accountPicture: some View {
+        Group {
+            if let image = Avatar.cached(size: 72) {
+                Image(nsImage: image).resizable()
+            } else {
+                Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(.tertiary)
+            }
+        }
+        .frame(width: 36, height: 36)
+        .clipShape(Circle())
     }
 
     private func add() {

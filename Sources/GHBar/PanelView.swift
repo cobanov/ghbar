@@ -35,7 +35,7 @@ struct PanelView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let input = model.input {
                 if input.isSignedOut {
-                    signedOut
+                    signedOut(input.auth)
                 } else {
                     header(input)
                     if !input.errors.isEmpty { errors(input) }
@@ -350,15 +350,38 @@ struct PanelView: View {
 
     // MARK: signed out
 
-    private var signedOut: some View {
-        VStack(spacing: 8) {
+    private func signedOut(_ auth: AuthState) -> some View {
+        let (title, detail, button): (String, String, String) = {
+            switch auth {
+            case .expired(.githubCLI):
+                return ("The GitHub CLI is signed out",
+                        "Run gh auth login in Terminal, or sign in with GitHub instead.", "Sign in with GitHub")
+            case .expired:
+                return ("Sign in again",
+                        "GitHub no longer accepts GHBar's sign-in. It may have been revoked or have expired.",
+                        "Sign in again")
+            default:
+                return ("Sign in to GitHub",
+                        "GHBar shows the pull requests and issues people open on your repositories.", "Sign in")
+            }
+        }()
+        return VStack(spacing: 8) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 52, height: 52)
                 .padding(.bottom, 6)
-            Text("Sign in to GitHub").font(Ink.name)
-            Text("GHBar shows the pull requests and issues people open on your repositories.")
+            Text(title).font(Ink.name)
+            Text(detail)
                 .font(Ink.meta).foregroundStyle(Ink.secondary).multilineTextAlignment(.center)
-            Button("Sign in", action: actions.signIn).buttonStyle(QuietButtonStyle(prominent: true))
+                .fixedSize(horizontal: false, vertical: true)
+            Button(button, action: actions.signIn).buttonStyle(QuietButtonStyle(prominent: true))
                 .padding(.top, 10)
+            HStack(spacing: 14) {
+                Button("Settings", action: actions.openSettings)
+                Button("Quit", action: actions.quit)
+            }
+            .buttonStyle(.plain)
+            .font(Ink.meta)
+            .foregroundStyle(Ink.tertiary)
+            .padding(.top, 6)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 34)
