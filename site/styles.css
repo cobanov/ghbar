@@ -114,6 +114,18 @@ code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo
 /* --- nav ---------------------------------------------------------------- */
 
 .nav-wrap { position: sticky; top: 0; z-index: 50; padding: 14px 0; }
+/* Kaydirilinca: arkada zemin renginde bir perde, metin menunun altina
+   girmeden soluyor; hap da daha opak. */
+.nav-wrap::before {
+  content: ""; position: absolute; inset: 0 0 -28px; z-index: -1;
+  background: linear-gradient(to bottom, var(--bg) 58%, transparent);
+  opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+}
+.nav-wrap.scrolled::before { opacity: 1; }
+.nav-wrap.scrolled .nav { background: var(--glass-strong); box-shadow: var(--shadow-lg); }
+
+/* Menuden bir bolume atlayinca baslik menunun altinda kalmasin. */
+section[id] { scroll-margin-top: 96px; }
 
 .nav {
   width: min(100% - 44px, var(--measure));
@@ -271,12 +283,22 @@ code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo
 
 .install-grid {
   display: grid; gap: 18px; margin-top: 38px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
 }
 .install-grid .card { display: flex; flex-direction: column; align-items: flex-start; }
 .install-grid .card p { margin: 10px 0 18px; }
-.install-grid .card pre { max-width: 100%; padding: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.install-grid .card pre code { display: block; padding: 8px 10px; line-height: 1.6; }
+/* Komutlar tek satir: Terminal karti tam genislikte, digerleri yan yana.
+   Telefonda sigmayan komut kirilmak yerine kendi icinde kayar. */
+.install-main { grid-column: 1 / -1; }
+.install-grid .copy { max-width: 100%; }
+.install-grid .copy code { white-space: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: none; }
+.install-grid .copy code::-webkit-scrollbar { display: none; }
+.install-grid .card .btn-ghost code { background: none; padding: 0; }
+.copy code { text-align: left; }
+/* Telefonda tek satira sigmiyor: yalniz bosluklarda ve URL'nin / isaretlerinde kirilsin. */
+@media (max-width: 560px) {
+  .install-grid .copy code { white-space: normal; overflow-x: visible; }
+}
 .install-grid .card .btn { margin-top: auto; }
 
 .requirements { border-radius: var(--radius-lg); padding: 26px 24px; margin-top: 18px; }

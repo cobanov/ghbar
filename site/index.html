@@ -187,19 +187,22 @@ is:pr    is:open author:@me                           <span class="c">→ My PRs
   <h2>Install</h2>
 
   <div class="install-grid">
-    <div class="card glass">
+    <div class="card glass install-main">
       <h3>Terminal</h3>
-      <pre class="code inline"><code>curl -fsSL https://ghbar.cobanov.dev/install.sh | sh</code></pre>
-      <button class="btn btn-ghost small copy" data-copy="curl -fsSL https://ghbar.cobanov.dev/install.sh | sh">
-        <span class="copy-label">Copy command</span>
+      <p>Downloads the latest release, checks that Apple notarized it and puts
+      GHBar in Applications. Run it again to update.</p>
+      <button class="btn btn-ghost copy" data-copy="curl -fsSL https://ghbar.cobanov.dev/install.sh | sh">
+        <code>curl -fsSL https://<wbr>ghbar.cobanov.dev/<wbr>install.sh | sh</code>
+        <span class="copy-label">Copy</span>
       </button>
     </div>
 
     <div class="card glass">
       <h3>Homebrew</h3>
-      <pre class="code inline"><code>brew install --cask cobanov/tap/ghbar</code></pre>
-      <button class="btn btn-ghost small copy" data-copy="brew install --cask cobanov/tap/ghbar">
-        <span class="copy-label">Copy command</span>
+      <p>Update later with <code>brew upgrade --cask ghbar</code>.</p>
+      <button class="btn btn-ghost copy" data-copy="brew install --cask cobanov/tap/ghbar">
+        <code>brew install --cask cobanov/tap/ghbar</code>
+        <span class="copy-label">Copy</span>
       </button>
     </div>
 
@@ -262,6 +265,12 @@ is:pr    is:open author:@me                           <span class="c">→ My PRs
 </svg>
 
 <script>
+  // Sayfa kaydirilinca menu cubugu altindan gecen metni ortuyor.
+  var navWrap = document.querySelector('.nav-wrap');
+  function markScrolled() { navWrap.classList.toggle('scrolled', window.scrollY > 8); }
+  window.addEventListener('scroll', markScrolled, { passive: true });
+  markScrolled();
+
   // "Copy" dugmeleri: panoya yazar, iki saniye geri bildirim gosterir.
   document.querySelectorAll('.copy').forEach(function (button) {
     button.addEventListener('click', function () {
