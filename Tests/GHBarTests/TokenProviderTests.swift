@@ -92,4 +92,11 @@ struct AuthStateTests {
         #expect(AuthState.expired(.githubCLI).source == .githubCLI)
         #expect(AuthState.signedOut.source == nil)
     }
+
+    @Test("expiry messages tell a refused token from a missing one") func expiryMessages() {
+        #expect(AuthState.expired(.githubCLI).expiryMessage(refused: true).contains("refused"))
+        #expect(AuthState.expired(.githubCLI).expiryMessage(refused: false).contains("signed out"))
+        #expect(AuthState.expired(.oauth).expiryMessage(refused: true).contains("no longer accepts"))
+        #expect(AuthState.expired(.oauth).expiryMessage(refused: false).contains("Keychain"))
+    }
 }

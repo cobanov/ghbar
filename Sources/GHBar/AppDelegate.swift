@@ -1,5 +1,6 @@
 import AppKit
 import Defaults
+import Network
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -26,6 +27,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notices: [String] = []
     /// No refreshes until then: GitHub's rate limit is spent.
     private var rateLimitedUntil: Date?
+    private let pathMonitor = NWPathMonitor()
+    private var online = true
+    /// A refresh that waits for the network: after wake, or after one failed offline.
+    private var refreshWhenOnline = false
     private var lastRefresh: Date?
     private var refreshGate = RefreshGate()
     private var timer: Timer?
@@ -102,14 +107,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            // The network is usually not back the moment the lid opens, and the overdue
-            // timer would fire too: restart the timer and refresh once, a little later.
+            // The overdue timer would fire too: restart it, and refresh once the network is
+            // back, which it usually is not the moment the lid opens.
             Task { @MainActor in
-                self?.scheduleTimer()
-                try? await Task.sleep(for: .seconds(5))
-                self?.refresh()
+                guard let self else { return }
+                self.scheduleTimer()
+                if self.online { self.refresh() } else { self.refreshWhenOnline = true }
             }
         }
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            let isOnline = path.status == .satisfied
+            Task { @MainActor in self?.networkChanged(isOnline) }
+        }
+        pathMonitor.start(queue: .global(qos: .utility))
 
         refresh()
     }
@@ -184,8 +194,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 errors = [.rateLimited(resetAt)]
             } catch let error as AppError {
                 errors = [error]
+                if case .network = error { refreshWhenOnline = true }
             } catch {
                 errors = [.network(error.localizedDescription)]
+                refreshWhenOnline = true
             }
 
             rebuildMenu()
@@ -246,6 +258,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The network came back (or went): a refresh that was waiting for it runs now.
+    private func networkChanged(_ isOnline: Bool) {
+        let cameBack = isOnline && !online
+        online = isOnline
+        guard cameBack, refreshWhenOnline else { return }
+        refreshWhenOnline = false
+        refresh()
+    }
+
     /// What belongs to one GitHub account and must not carry over to another.
     private func resetAccountScopedState() {
         Defaults[.organizations] = []
@@ -272,6 +293,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             notices: notices,
             lastRefresh: lastRefresh,
             auth: session.state,
+            authRefused: session.refused,
             isRefreshing: refreshGate.isRunning,
             showOwner: settings.accounts.count > 1 || !settings.organizations.isEmpty,
             knownOrganizations: Defaults[.knownOrganizations],
@@ -372,6 +394,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// alt sinir var.
     private func panelWillOpen() {
         panelModel.input?.now = Date()
+        panelModel.opened += 1
         // lastRefresh nil = henuz hic basarili yenileme olmadi (ilk deneme
         // basarisiz olmus olabilir); menuyu acmak yeniden denemek icin en
         // dogru an. distantPast, 30 saniyelik esigi otomatik gecirir.

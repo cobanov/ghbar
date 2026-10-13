@@ -199,6 +199,15 @@ enum ChoiceMenu {
         @objc func runAction() { run() }
     }
 
+    /// Where to open: at the pointer for a click; for anything else (keyboard, VoiceOver),
+    /// under the top of the window that has focus, so it never opens on another display.
+    private static var anchor: NSPoint {
+        let clicks: Set<NSEvent.EventType> = [.leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp]
+        if let event = NSApp.currentEvent, clicks.contains(event.type) { return NSEvent.mouseLocation }
+        if let window = NSApp.keyWindow { return NSPoint(x: window.frame.midX, y: window.frame.maxY - 48) }
+        return NSEvent.mouseLocation
+    }
+
     static func show<T: Equatable>(_ choices: [T], current: T?, title: (T) -> String, pick: @escaping (T) -> Void) {
         let menu = NSMenu()
         menu.appearance = NSAppearance(named: .darkAqua)
@@ -211,7 +220,7 @@ enum ChoiceMenu {
             if choice == current { item.state = .on; selected = item }
             menu.addItem(item)
         }
-        menu.popUp(positioning: selected, at: NSEvent.mouseLocation, in: nil)
+        menu.popUp(positioning: selected, at: anchor, in: nil)
     }
 
     enum Entry {
@@ -240,6 +249,6 @@ enum ChoiceMenu {
                 menu.addItem(item)
             }
         }
-        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+        menu.popUp(positioning: nil, at: anchor, in: nil)
     }
 }

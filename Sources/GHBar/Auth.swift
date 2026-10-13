@@ -26,6 +26,20 @@ enum AuthState: Equatable, Sendable {
         case .signedIn(let source), .expired(let source): source
         }
     }
+
+    /// What happened, for an expired state: GitHub refused the token, or the token is gone.
+    func expiryMessage(refused: Bool) -> String {
+        switch (source, refused) {
+        case (.githubCLI, true):
+            "GitHub refused the GitHub CLI's token. Run gh auth refresh in Terminal, or sign in with GitHub here."
+        case (.githubCLI, false):
+            "The GitHub CLI is signed out. Run gh auth login in Terminal, or sign in with GitHub here."
+        case (_, true):
+            "GitHub no longer accepts GHBar's sign-in. It may have been revoked or have expired."
+        default:
+            "GHBar's saved sign-in is gone from the Keychain. Sign in again."
+        }
+    }
 }
 
 /// The rule for picking a token, kept pure so it can be tested.
@@ -69,6 +83,8 @@ final class AuthSession: ObservableObject {
 
     @Published private(set) var state: AuthState = .signedOut
     @Published private(set) var login: String? = Defaults[.signedInLogin]
+    /// For an expired state: GitHub refused the token (true) rather than it being missing.
+    @Published private(set) var refused = false
     /// Bumped by every sign-in and sign-out. A refresh notes it before going to the network
     /// and drops its results if it changed meanwhile.
     private(set) var generation = 0
@@ -97,6 +113,7 @@ final class AuthSession: ObservableObject {
             )).map { [$0.token, $0.source.rawValue] }
         }.value
         guard let resolved, let source = AuthSource(rawValue: resolved[1]), resolved[0] != rejected else {
+            refused = resolved != nil   // the only token there is, GitHub already refused
             state = recorded.map(AuthState.expired) ?? .signedOut
             return nil
         }
@@ -144,6 +161,7 @@ final class AuthSession: ObservableObject {
         if source == .oauth { Keychain.delete() }
         rejected = cached?.token
         cached = nil
+        refused = true
         state = .expired(source)
     }
 
@@ -156,6 +174,7 @@ final class AuthSession: ObservableObject {
         generation += 1
         cached = token
         rejected = nil
+        refused = false
         self.state = state
     }
 

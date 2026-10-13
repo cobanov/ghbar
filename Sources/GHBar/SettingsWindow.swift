@@ -204,10 +204,8 @@ struct AccountsPane: View {
                     LabeledContent("Repository access", value: "Whatever gh can see")
                 }
 
-            case .expired(let source):
-                Label(source == .oauth
-                      ? "GitHub no longer accepts this sign-in. It may have been revoked or have expired."
-                      : "The GitHub CLI is signed out. Run gh auth login, or sign in with GitHub here.",
+            case .expired:
+                Label(session.state.expiryMessage(refused: session.refused),
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                 Button("Sign In Again…", action: onSignIn)
@@ -283,7 +281,7 @@ struct RepositoriesPane: View {
                         HStack {
                             Text(repo)
                             Spacer()
-                            if let count = knownRepos[repo] {
+                            if let count = knownRepos[repo], count > 0 {
                                 Text("\(count)").foregroundStyle(.secondary)
                             }
                         }

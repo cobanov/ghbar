@@ -13,6 +13,8 @@ struct PanelInput {
     var notices: [String] = []
     var lastRefresh: Date?
     var auth: AuthState
+    /// With an expired `auth`: GitHub refused the token, rather than it being gone.
+    var authRefused = false
     var isSignedOut: Bool { !auth.isSignedIn }
     var isRefreshing: Bool = false
     var showOwner: Bool

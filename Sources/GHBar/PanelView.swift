@@ -20,6 +20,8 @@ struct PanelActions {
 final class PanelModel: ObservableObject {
     @Published var input: PanelInput?
     @Published var tab: SectionKind?
+    /// Bumped each time the panel opens, so the view can take keyboard focus.
+    @Published var opened = 0
     var actions = PanelActions()
 }
 
@@ -28,6 +30,9 @@ final class PanelModel: ObservableObject {
 struct PanelView: View {
     @ObservedObject var model: PanelModel
     @State private var expanded: Set<String> = []
+    /// The row the arrow keys are on: an item's URL or a group's key.
+    @State private var cursor: String?
+    @FocusState private var focused: Bool
 
     private var actions: PanelActions { model.actions }
 
@@ -35,7 +40,7 @@ struct PanelView: View {
         VStack(alignment: .leading, spacing: 0) {
             if let input = model.input {
                 if input.isSignedOut {
-                    signedOut(input.auth)
+                    signedOut(input.auth, refused: input.authRefused)
                 } else {
                     header(input)
                     if !input.errors.isEmpty || !input.notices.isEmpty { errors(input) }
@@ -49,6 +54,84 @@ struct PanelView: View {
         .frame(width: 380)
         .foregroundStyle(Ink.primary)
         .background(shortcuts)
+        // The panel works from the keyboard: arrows move between rows and tabs, Return opens.
+        .focusable()
+        .focused($focused)
+        .focusEffectDisabled()
+        .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow, .return]) { press in
+            handle(press.key) ? .handled : .ignored
+        }
+        .onChange(of: model.opened) {
+            cursor = nil
+            focused = true
+        }
+        .onAppear { focused = true }
+    }
+
+    // MARK: keyboard
+
+    /// A row as the arrow keys see it: items, groups, and the items of open groups, in order.
+    private enum Entry {
+        case item(Item)
+        case group(key: String, items: [Item])
+
+        var id: String {
+            switch self {
+            case .item(let item): item.url
+            case .group(let key, _): key
+            }
+        }
+    }
+
+    private func entries(_ section: MenuSection) -> [Entry] {
+        section.rows.flatMap { row -> [Entry] in
+            switch row {
+            case .item(let item):
+                return [.item(item)]
+            case .group(let repository, let items):
+                let key = "\(section.kind.rawValue)/\(repository)"
+                return [.group(key: key, items: items)] + (expanded.contains(key) ? items.map(Entry.item) : [])
+            }
+        }
+    }
+
+    private func handle(_ key: KeyEquivalent) -> Bool {
+        guard let input = model.input, !input.isSignedOut else { return false }
+        let kinds = kinds(input)
+        guard let tab = current(input, kinds) else { return false }
+        switch key {
+        case .leftArrow, .rightArrow:
+            guard let index = kinds.firstIndex(of: tab) else { return false }
+            let next = index + (key == .rightArrow ? 1 : -1)
+            guard kinds.indices.contains(next) else { return true }
+            model.tab = kinds[next]
+            cursor = nil
+        case .upArrow, .downArrow:
+            guard let section = section(tab, input) else { return true }
+            let ids = entries(section).map(\.id)
+            guard !ids.isEmpty else { return true }
+            let index = cursor.flatMap(ids.firstIndex(of:))
+            let next = switch (index, key == .downArrow) {
+            case (nil, true): 0
+            case (nil, false): ids.count - 1
+            case (let i?, true): min(i + 1, ids.count - 1)
+            case (let i?, false): max(i - 1, 0)
+            }
+            cursor = ids[next]
+        case .return:
+            guard let section = section(tab, input),
+                  let entry = entries(section).first(where: { $0.id == cursor }) else { return true }
+            switch entry {
+            case .item(let item): actions.open(item)
+            case .group(let key, _):
+                withAnimation(.easeOut(duration: 0.18)) {
+                    if expanded.contains(key) { expanded.remove(key) } else { expanded.insert(key) }
+                }
+            }
+        default:
+            return false
+        }
+        return true
     }
 
     /// The menu's old key equivalents, kept for people who used them.
@@ -67,7 +150,7 @@ struct PanelView: View {
 
     private func header(_ input: PanelInput) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 11) {
+            HStack(alignment: .top, spacing: 6) {
                 Button(action: actions.openProfile) {
                     HStack(alignment: .top, spacing: 11) {
                         ViewerAvatar(viewer: input.viewer).frame(width: 34, height: 34)
@@ -107,8 +190,8 @@ struct PanelView: View {
         let following = counter(Self.compact(social.following), "following")
         // Whole counters or none: a cut-off "123…" reads worse than a missing one.
         return ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) { stars; followers; following }
-            HStack(spacing: 10) { stars; followers }
+            HStack(spacing: 8) { stars; followers; following }
+            HStack(spacing: 8) { stars; followers }
             stars
         }
     }
@@ -262,8 +345,9 @@ struct PanelView: View {
                             Text(kind.tabTitle(short: short))
                                 .font(active ? Ink.tabActive : Ink.tab)
                                 .foregroundStyle(active ? Ink.primary : Ink.secondary)
-                            if counts, let count = section?.items.count, count > 0 {
-                                Text(verbatim: "\(count)")
+                            // Green counts what is new; grey counts everything when nothing is.
+                            if counts, let total = section?.items.count, total > 0 {
+                                Text(verbatim: "\(unseen > 0 ? unseen : total)")
                                     .font(Ink.meta)
                                     .monospacedDigit()
                                     .foregroundStyle(unseen > 0 ? Ink.green : Ink.tertiary)
@@ -287,24 +371,29 @@ struct PanelView: View {
 
     @ViewBuilder private func list(_ input: PanelInput, _ section: MenuSection?) -> some View {
         if let section, !section.isEmpty {
+            ScrollViewReader { scroller in
             ScrollView(.vertical) {
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(section.rows, id: \.self) { row in
                         switch row {
                         case .item(let item):
-                            ItemRow(item: item, input: input, open: actions.open)
+                            ItemRow(item: item, input: input, selected: cursor == item.url, open: actions.open)
+                                .id(item.url)
                         case .group(let repository, let items):
                             let key = "\(section.kind.rawValue)/\(repository)"
                             GroupRow(repository: repository, items: items, input: input,
-                                     expanded: expanded.contains(key)) {
+                                     expanded: expanded.contains(key), selected: cursor == key) {
                                 withAnimation(.easeOut(duration: 0.18)) {
                                     if expanded.contains(key) { expanded.remove(key) }
                                     else { expanded.insert(key) }
                                 }
                             }
+                            .id(key)
                             if expanded.contains(key) {
                                 ForEach(items) { item in
-                                    ItemRow(item: item, input: input, open: actions.open).padding(.leading, 20)
+                                    ItemRow(item: item, input: input, selected: cursor == item.url, open: actions.open)
+                                        .padding(.leading, 20)
+                                        .id(item.url)
                                 }
                             }
                         }
@@ -320,6 +409,10 @@ struct PanelView: View {
             }
             .frame(maxHeight: 372)
             .fixedSize(horizontal: false, vertical: true)
+            .onChange(of: cursor) {
+                if let cursor { withAnimation(.easeOut(duration: 0.12)) { scroller.scrollTo(cursor) } }
+            }
+            }
         } else {
             Text("Nothing here right now.")
                 .font(Ink.body).foregroundStyle(Ink.secondary)
@@ -404,16 +497,14 @@ struct PanelView: View {
 
     // MARK: signed out
 
-    private func signedOut(_ auth: AuthState) -> some View {
+    private func signedOut(_ auth: AuthState, refused: Bool) -> some View {
         let (title, detail, button): (String, String, String) = {
             switch auth {
             case .expired(.githubCLI):
-                return ("The GitHub CLI is signed out",
-                        "Run gh auth login in Terminal, or sign in with GitHub instead.", "Sign in with GitHub")
+                return (refused ? "GitHub refused the GitHub CLI's token" : "The GitHub CLI is signed out",
+                        auth.expiryMessage(refused: refused), "Sign in with GitHub")
             case .expired:
-                return ("Sign in again",
-                        "GitHub no longer accepts GHBar's sign-in. It may have been revoked or have expired.",
-                        "Sign in again")
+                return ("Sign in again", auth.expiryMessage(refused: refused), "Sign in again")
             default:
                 return ("Sign in to GitHub",
                         "GHBar shows the pull requests and issues people open on your repositories.", "Sign in")
@@ -456,6 +547,7 @@ struct PanelView: View {
 struct ItemRow: View {
     let item: Item
     let input: PanelInput
+    var selected = false
     let open: (Item) -> Void
     @State private var hover = false
 
@@ -495,7 +587,7 @@ struct ItemRow: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hover ? Ink.raised : .clear))
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hover || selected ? Ink.raised : .clear))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -518,6 +610,7 @@ struct GroupRow: View {
     let items: [Item]
     let input: PanelInput
     let expanded: Bool
+    var selected = false
     let toggle: () -> Void
     @State private var hover = false
 
@@ -543,7 +636,7 @@ struct GroupRow: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hover ? Ink.raised : .clear))
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(hover || selected ? Ink.raised : .clear))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

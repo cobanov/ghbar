@@ -150,10 +150,8 @@ struct WelcomeView: View {
 
     private var subheading: String {
         switch session.state {
-        case .expired(.githubCLI):
-            "The GitHub CLI is signed out. Sign in with GitHub here, or run gh auth login."
         case .expired:
-            "GitHub no longer accepts GHBar's sign-in. It may have been revoked or have expired."
+            session.state.expiryMessage(refused: session.refused)
         case .signedIn:
             "Sign in again to switch account or change which repositories GHBar can see."
         case .signedOut:
