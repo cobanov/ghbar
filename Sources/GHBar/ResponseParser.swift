@@ -3,6 +3,8 @@ import Foundation
 enum ParseError: Error, Equatable {
     case malformed(String)
     case graphQL(String)
+    /// GraphQL's primary rate limit answers 200 with an error of this type.
+    case rateLimited
 }
 
 enum ResponseParser {
@@ -17,12 +19,16 @@ enum ResponseParser {
             throw ParseError.malformed("root is not an object")
         }
 
-        if let errors = root["errors"] as? [[String: Any]],
-           let message = errors.first?["message"] as? String {
-            throw ParseError.graphQL(message)
+        // GitHub can return complete data alongside errors about one part of it, such as an
+        // organization behind an IP allow list. Only a missing `data` fails the refresh; the
+        // rest becomes a warning, and a search it took out comes back empty.
+        let errors = root["errors"] as? [[String: Any]] ?? []
+        if errors.contains(where: { $0["type"] as? String == "RATE_LIMITED" }) {
+            throw ParseError.rateLimited
         }
-
+        let messages = errors.compactMap { $0["message"] as? String }
         guard let payload = root["data"] as? [String: Any] else {
+            if let message = messages.first { throw ParseError.graphQL(message) }
             throw ParseError.malformed("missing data")
         }
 
@@ -45,12 +51,15 @@ enum ResponseParser {
 
         func search(_ key: String, kind: ItemKind, section: SectionKind) throws -> [Item] {
             guard let object = payload[key] as? [String: Any] else {
+                if !messages.isEmpty { return [] }   // reported in `warnings`
                 throw ParseError.malformed("missing \(key)")
             }
-            if let count = object["issueCount"] as? Int, count >= searchLimit {
+            // A node GitHub could not resolve comes back as null; skip it, keep the rest.
+            let nodes = (object["nodes"] as? [Any] ?? []).compactMap { $0 as? [String: Any] }
+            // Exactly 100 results all fit; only more than that leaves some out.
+            if let count = object["issueCount"] as? Int, count > searchLimit {
                 truncated.insert(section)
             }
-            let nodes = object["nodes"] as? [[String: Any]] ?? []
             return nodes.compactMap { item(from: $0, kind: kind) }
         }
 
@@ -85,7 +94,8 @@ enum ResponseParser {
             changesRequested: changesRequested,
             myPullRequests: myPullRequests,
             rateLimit: RateLimit(limit: limit, remaining: remaining, resetAt: resetAt),
-            truncated: truncated
+            truncated: truncated,
+            warnings: messages
         )
     }
 

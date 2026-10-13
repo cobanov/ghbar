@@ -86,6 +86,7 @@ final class StatusPanel: NSObject {
     private let position = ArrowPosition()
     private let style: ArrowPanelStyle
     private var monitors: [Any] = []
+    private var resignObserver: NSObjectProtocol?
     private var relayoutPending = false
     /// Called each time the panel opens, before it is shown.
     var onOpen: () -> Void = {}
@@ -102,6 +103,8 @@ final class StatusPanel: NSObject {
         panel.hasShadow = true
         panel.level = .popUpMenu
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        // SwiftUI content is forced dark; this makes the tooltips and menus match it.
+        panel.appearance = NSAppearance(named: .darkAqua)
         panel.isReleasedWhenClosed = false
         // NSPanel hides itself whenever its app is not frontmost, and an accessory app is not
         // made frontmost reliably; the outside-click monitor closes it instead.
@@ -116,6 +119,7 @@ final class StatusPanel: NSObject {
     }
 
     func open() {
+        guard !isOpen else { return }
         onOpen()
         NSApp.activate(ignoringOtherApps: true)
         layout()
@@ -128,18 +132,34 @@ final class StatusPanel: NSObject {
             NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
                 Task { @MainActor in self?.close() }
             } as Any,
+            // Clicks in the app's own windows (Settings, Welcome) close it too; clicks in the
+            // panel, its menus and the status item do not.
+            NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+                if let self, let window = event.window, window !== self.panel,
+                   window !== self.statusItem.button?.window, !(window.className.contains("Menu")) {
+                    self.close()
+                }
+                return event
+            } as Any,
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                guard event.keyCode == 53 else { return event }
-                self?.close()
+                guard event.keyCode == 53, let self, event.window === self.panel else { return event }
+                self.close()
                 return nil
             } as Any,
         ]
+        resignObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.close() }
+        }
     }
 
     func close() {
         guard isOpen else { return }
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
+        if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
+        resignObserver = nil
         statusItem.button?.highlight(false)
         panel.orderOut(nil)
     }
@@ -181,6 +201,7 @@ enum ChoiceMenu {
 
     static func show<T: Equatable>(_ choices: [T], current: T?, title: (T) -> String, pick: @escaping (T) -> Void) {
         let menu = NSMenu()
+        menu.appearance = NSAppearance(named: .darkAqua)
         var selected: NSMenuItem?
         for choice in choices {
             let action = Action { pick(choice) }
@@ -201,6 +222,7 @@ enum ChoiceMenu {
 
     static func show(_ entries: [Entry]) {
         let menu = NSMenu()
+        menu.appearance = NSAppearance(named: .darkAqua)
         for entry in entries {
             switch entry {
             case .separator:

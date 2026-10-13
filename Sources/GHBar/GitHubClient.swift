@@ -27,7 +27,8 @@ struct GitHubClient {
             throw AppError.network(error.localizedDescription)
         }
 
-        try validate(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
+        let http = response as? HTTPURLResponse
+        try validate(statusCode: http?.statusCode ?? 0, headers: Self.headers(http))
 
         do {
             return try ResponseParser.parse(data)
@@ -35,6 +36,7 @@ struct GitHubClient {
             switch error {
             case .graphQL(let message):  throw AppError.graphQL(message)
             case .malformed(let detail): throw AppError.parse(detail)
+            case .rateLimited:           throw AppError.rateLimited(Self.resetDate(Self.headers(http)))
             }
         }
     }
@@ -66,18 +68,41 @@ struct GitHubClient {
         return request
     }
 
-    func validate(statusCode: Int) throws {
+    /// - Parameter headers: lower-cased response headers.
+    func validate(statusCode: Int, headers: [String: String] = [:], now: Date = Date()) throws {
         switch statusCode {
         case 200:
             return
         case 401:
             throw AppError.unauthorized
         case 403, 429:
-            // Gercek sifirlanma zamani cevap basliklarinda geliyor; Asama 1'de
-            // bir saat sonrasi yeterince iyi bir tahmin.
-            throw AppError.rateLimited(Date().addingTimeInterval(3600))
+            // A 403 is a rate limit only when GitHub says so: no requests left, or a
+            // retry-after for the secondary limit. Otherwise it is a refusal (SSO, IP list).
+            if statusCode == 429 || headers["x-ratelimit-remaining"] == "0" || headers["retry-after"] != nil {
+                throw AppError.rateLimited(Self.resetDate(headers, now: now))
+            }
+            throw AppError.forbidden
         default:
             throw AppError.network("HTTP \(statusCode)")
         }
+    }
+
+    /// When requests may start again: retry-after seconds, else x-ratelimit-reset, else an hour.
+    static func resetDate(_ headers: [String: String], now: Date = Date()) -> Date {
+        if let seconds = headers["retry-after"].flatMap(TimeInterval.init) {
+            return now.addingTimeInterval(seconds)
+        }
+        if let epoch = headers["x-ratelimit-reset"].flatMap(TimeInterval.init) {
+            return Date(timeIntervalSince1970: epoch)
+        }
+        return now.addingTimeInterval(3600)
+    }
+
+    private static func headers(_ response: HTTPURLResponse?) -> [String: String] {
+        var result: [String: String] = [:]
+        for (key, value) in response?.allHeaderFields ?? [:] {
+            if let key = key as? String, let value = value as? String { result[key.lowercased()] = value }
+        }
+        return result
     }
 }

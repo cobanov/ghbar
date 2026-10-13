@@ -38,7 +38,7 @@ struct PanelView: View {
                     signedOut(input.auth)
                 } else {
                     header(input)
-                    if !input.errors.isEmpty { errors(input) }
+                    if !input.errors.isEmpty || !input.notices.isEmpty { errors(input) }
                     work(input)
                     footer(input)
                 }
@@ -79,7 +79,7 @@ struct PanelView: View {
                                     Text(verbatim: "@\(login)").font(Ink.meta).foregroundStyle(Ink.tertiary).lineLimit(1)
                                 }
                             }
-                            if let social = input.social { counters(social).fixedSize() }
+                            if let social = input.social { counters(social) }
                         }
                     }
                     .contentShape(Rectangle())
@@ -102,10 +102,14 @@ struct PanelView: View {
     }
 
     private func counters(_ social: Social) -> some View {
-        HStack(spacing: 10) {
-            counter(Formatting.grouped(social.stars) + (social.starsAreExact ? "" : "+"), "stars")
-            counter(Formatting.grouped(social.followers), "followers")
-            counter(Formatting.grouped(social.following), "following")
+        let stars = counter(Self.compact(social.stars) + (social.starsAreExact ? "" : "+"), "stars")
+        let followers = counter(Self.compact(social.followers), "followers")
+        let following = counter(Self.compact(social.following), "following")
+        // Whole counters or none: a cut-off "123…" reads worse than a missing one.
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) { stars; followers; following }
+            HStack(spacing: 10) { stars; followers }
+            stars
         }
     }
 
@@ -115,15 +119,19 @@ struct PanelView: View {
             Text(label).foregroundStyle(Ink.tertiary)
         }
         .font(Ink.meta)
+        .fixedSize()
     }
 
     private func organizations(_ input: PanelInput) -> some View {
         let selected = input.selectedOrganizations
-        let label = selected.isEmpty ? "All organizations"
-            : selected.count == 1 ? selected[0] : "\(selected.count) organizations"
+        // No organization picked means your own repositories; picking one switches to what is
+        // assigned to you there (Query.build), so the labels say that.
+        let label = selected.isEmpty ? "Your repositories"
+            : selected.count == 1 ? "Assigned to you in \(selected[0])" : "Assigned to you in \(selected.count) organizations"
         return Button {
             ChoiceMenu.show(
-                [.action("All organizations", checked: selected.isEmpty, actions.clearOrganizations), .separator]
+                [.action("Your repositories", checked: selected.isEmpty, actions.clearOrganizations),
+                 .separator, .header("Assigned to you in")]
                     + input.knownOrganizations.sorted().map { org in
                         .action(org, checked: selected.contains(org)) { actions.toggleOrganization(org) }
                     }
@@ -162,14 +170,41 @@ struct PanelView: View {
                 Label(error.menuText, systemImage: "exclamationmark.triangle.fill")
                     .font(Ink.meta)
                     .foregroundStyle(Ink.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            if let last = input.lastRefresh {
-                Text("Showing what was there at \(Self.clock.string(from: last)).")
+            // Only a failed refresh leaves older data on screen; say how old.
+            if !input.errors.isEmpty, let last = input.lastRefresh {
+                Text("Showing what was there \(Self.when(last, now: input.now)).")
                     .font(Ink.meta).foregroundStyle(Ink.tertiary)
+            }
+            ForEach(input.notices, id: \.self) { notice in
+                Label(notice, systemImage: "info.circle")
+                    .font(Ink.meta)
+                    .foregroundStyle(Ink.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 12)
+    }
+
+    /// "at 14:32" today, "on 12 Oct at 14:32" before.
+    private static func when(_ date: Date, now: Date) -> String {
+        Calendar.current.isDate(date, inSameDayAs: now)
+            ? "at \(clock.string(from: date))"
+            : "on \(day.string(from: date)) at \(clock.string(from: date))"
+    }
+
+    private static let day: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "d MMM"
+        return f
+    }()
+
+    /// 2,611 stays as it is; 12,345 becomes 12.3k, so the header never outgrows the panel.
+    static func compact(_ value: Int) -> String {
+        value < 10_000 ? Formatting.grouped(value) : String(format: "%.1fk", Double(value) / 1000)
     }
 
     // MARK: work
@@ -207,14 +242,16 @@ struct PanelView: View {
 
     private func tabs(_ input: PanelInput, _ kinds: [SectionKind], current: SectionKind) -> some View {
         ViewThatFits(in: .horizontal) {
-            tabRow(input, kinds, current: current, short: false)
-            tabRow(input, kinds, current: current, short: true)
+            tabRow(input, kinds, current: current, short: false, counts: true)
+            tabRow(input, kinds, current: current, short: true, counts: true)
+            tabRow(input, kinds, current: current, short: true, counts: false)
         }
         .padding(.horizontal, 18)
     }
 
-    private func tabRow(_ input: PanelInput, _ kinds: [SectionKind], current: SectionKind, short: Bool) -> some View {
-        HStack(spacing: 18) {
+    private func tabRow(_ input: PanelInput, _ kinds: [SectionKind], current: SectionKind,
+                        short: Bool, counts: Bool) -> some View {
+        HStack(spacing: counts ? 18 : 14) {
             ForEach(kinds, id: \.self) { kind in
                 let section = section(kind, input)
                 let unseen = section?.unseenCount(input.isSeen) ?? 0
@@ -225,11 +262,13 @@ struct PanelView: View {
                             Text(kind.tabTitle(short: short))
                                 .font(active ? Ink.tabActive : Ink.tab)
                                 .foregroundStyle(active ? Ink.primary : Ink.secondary)
-                            if let count = section?.items.count, count > 0 {
+                            if counts, let count = section?.items.count, count > 0 {
                                 Text(verbatim: "\(count)")
                                     .font(Ink.meta)
                                     .monospacedDigit()
                                     .foregroundStyle(unseen > 0 ? Ink.green : Ink.tertiary)
+                            } else if !counts, unseen > 0 {
+                                Circle().fill(Ink.green).frame(width: 5, height: 5)
                             }
                         }
                         Capsule().fill(active ? Ink.primary : .clear).frame(height: 2)
@@ -238,6 +277,9 @@ struct PanelView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(kind.title)
+                .accessibilityValue("\(section?.items.count ?? 0) items, \(unseen) unseen")
+                .accessibilityAddTraits(active ? .isSelected : [])
             }
             Spacer(minLength: 0)
         }
@@ -252,14 +294,15 @@ struct PanelView: View {
                         case .item(let item):
                             ItemRow(item: item, input: input, open: actions.open)
                         case .group(let repository, let items):
+                            let key = "\(section.kind.rawValue)/\(repository)"
                             GroupRow(repository: repository, items: items, input: input,
-                                     expanded: expanded.contains(repository)) {
+                                     expanded: expanded.contains(key)) {
                                 withAnimation(.easeOut(duration: 0.18)) {
-                                    if expanded.contains(repository) { expanded.remove(repository) }
-                                    else { expanded.insert(repository) }
+                                    if expanded.contains(key) { expanded.remove(key) }
+                                    else { expanded.insert(key) }
                                 }
                             }
-                            if expanded.contains(repository) {
+                            if expanded.contains(key) {
                                 ForEach(items) { item in
                                     ItemRow(item: item, input: input, open: actions.open).padding(.leading, 20)
                                 }
@@ -287,13 +330,19 @@ struct PanelView: View {
 
     private func empty(_ input: PanelInput) -> some View {
         let (title, detail): (String, String) = {
+            if input.visibleSections.isEmpty {
+                return ("All tabs are turned off", "Choose which tabs to show in Settings.")
+            }
             if !input.selectedOrganizations.isEmpty {
-                return ("Nothing waiting in these organizations",
-                        "Pull requests and issues there will show up here.")
+                return ("Nothing assigned to you there",
+                        "Pull requests and issues assigned to you in these organizations show up here.")
             }
             if input.repositoryFilterActive {
-                return ("Nothing waiting in the watched repositories",
-                        "Change which repositories GHBar watches in Settings.")
+                return input.repositoryFilterIsAllowList
+                    ? ("Nothing waiting in the watched repositories",
+                       "Change which repositories GHBar watches in Settings.")
+                    : ("You're all caught up",
+                       "Some repositories are hidden; manage them in Settings.")
             }
             return ("You're all caught up",
                     "New pull requests and issues on your repositories will show up here.")
@@ -306,7 +355,7 @@ struct PanelView: View {
             if !input.selectedOrganizations.isEmpty {
                 Button("Show all organizations", action: actions.clearOrganizations).buttonStyle(QuietButtonStyle())
                     .padding(.top, 8)
-            } else if input.repositoryFilterActive {
+            } else if input.repositoryFilterActive || input.visibleSections.isEmpty {
                 Button("Open Settings", action: actions.openSettings).buttonStyle(QuietButtonStyle())
                     .padding(.top, 8)
             }
@@ -326,7 +375,12 @@ struct PanelView: View {
             Rectangle().fill(Ink.hairline).frame(height: 1)
             HStack {
                 if let tab, unseen > 0 {
-                    Button("Mark these as seen") { actions.markSectionSeen(tab) }
+                    Button("Mark these as seen") {
+                        // Pin the tab first: otherwise the next tab with unseen items takes its
+                        // place and the same button would clear that one too.
+                        model.tab = tab
+                        actions.markSectionSeen(tab)
+                    }
                         .buttonStyle(.plain)
                         .font(Ink.meta)
                         .foregroundStyle(Ink.secondary)
@@ -424,10 +478,15 @@ struct ItemRow: View {
                             .font(Ink.meta).monospacedDigit().foregroundStyle(Ink.tertiary)
                     }
                     HStack(spacing: 0) {
-                        Text(verbatim: "\(input.showOwner ? item.repository : item.repositoryName) #\(item.number)")
+                        Text(verbatim: input.showOwner ? item.repository : item.repositoryName)
                             .foregroundStyle(Ink.secondary)
-                        Text(verbatim: " by \(item.authorLogin)").foregroundStyle(Ink.tertiary)
-                        if item.isDraft { Text(", draft").foregroundStyle(Ink.tertiary) }
+                            .truncationMode(.middle)
+                            .layoutPriority(1)
+                        Text(verbatim: " #\(item.number)").foregroundStyle(Ink.secondary)
+                            .fixedSize()
+                            .layoutPriority(3)
+                        Text(verbatim: " by \(item.authorLogin)\(item.isDraft ? ", draft" : "")")
+                            .foregroundStyle(Ink.tertiary)
                     }
                     .font(Ink.meta)
                     .lineLimit(1)
@@ -442,7 +501,14 @@ struct ItemRow: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .help(item.title)
-        .accessibilityLabel("\(item.repositoryName) number \(item.number), \(item.title), by \(item.authorLogin), \(seen ? "read" : "unread")")
+        .accessibilityLabel([
+            "\(item.repositoryName) number \(item.number)",
+            item.kind == .issue ? "issue" : (item.isDraft ? "draft pull request" : "pull request"),
+            item.title,
+            "by \(item.authorLogin)",
+            Formatting.spokenAge(of: item.createdAt, now: input.now),
+            seen ? "read" : "unread",
+        ].joined(separator: ", "))
     }
 }
 
@@ -495,7 +561,8 @@ enum Ink {
     static let hairline = Color.white.opacity(0.07)
     static let primary = Color(red: 0.925, green: 0.933, blue: 0.945)
     static let secondary = Color(red: 0.569, green: 0.596, blue: 0.631)
-    static let tertiary = Color(red: 0.400, green: 0.424, blue: 0.459)
+    /// 5.3:1 on the panel, 4.6:1 on a hovered row: WCAG AA for small text.
+    static let tertiary = Color(red: 0.530, green: 0.550, blue: 0.590)
     static let green = Color(red: 0.200, green: 0.761, blue: 0.369)
     static let warning = Color(red: 0.95, green: 0.66, blue: 0.27)
 
@@ -600,7 +667,7 @@ private extension String {
     }
 }
 
-private extension SectionKind {
+extension SectionKind {
     func tabTitle(short: Bool) -> String {
         switch self {
         case .changesRequested: "Changes"

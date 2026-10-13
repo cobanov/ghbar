@@ -10,7 +10,7 @@
 #   make test       testler
 #   make clean
 
-VERSION     := 0.3.0
+VERSION     := 0.3.1
 APP         := GHBar
 BUNDLE_ID   := run.cobanov.ghbar
 MIN_MACOS   := 14.0

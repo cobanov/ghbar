@@ -19,6 +19,8 @@ enum Query {
     /// uygulaniyor. Belgelenen 256 karakter siniri REST/web aramasina ait.
     static let maxLength = 4000
 
+    static let newestFirst = "sort:created-desc"
+
     static func build(_ settings: Settings) -> Queries {
         let repos = normalizedRepositories(settings)
         let allowListEmpty = settings.repoListIsAllowList && repos.isEmpty
@@ -84,12 +86,16 @@ enum Query {
         )
         dropped = dropped || mineDropped
 
+        // Without a sort GitHub returns "best match" first; when a search hits the 100-result
+        // limit, newest first is what keeps the recent work in view.
+        func sorted(_ query: String) -> String { query + " " + newestFirst }
+
         return Queries(
-            prs:    assemble(["is:pr", "is:open"]),
-            issues: assemble(["is:issue", "is:open"]),
-            review: reviewParts.joined(separator: " "),
-            changesRequested: changesParts.joined(separator: " "),
-            myPullRequests: mineParts.joined(separator: " "),
+            prs:    sorted(assemble(["is:pr", "is:open"])),
+            issues: sorted(assemble(["is:issue", "is:open"])),
+            review: sorted(reviewParts.joined(separator: " ")),
+            changesRequested: sorted(changesParts.joined(separator: " ")),
+            myPullRequests: sorted(mineParts.joined(separator: " ")),
             filtersDropped: dropped,
             allowListEmpty: allowListEmpty
         )
@@ -141,7 +147,7 @@ enum Query {
       $first: Int!
     ) {
       viewer {
-        login name avatarUrl
+        login name avatarUrl(size: 96)
         organizations(first: 50) { nodes { login } }
         followers { totalCount }
         following { totalCount }

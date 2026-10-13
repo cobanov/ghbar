@@ -37,10 +37,18 @@ struct GitHubClientTests {
         }
     }
 
-    @Test("403 kota hatasina cevrilir") func rateLimited() throws {
+    @Test("403 is a rate limit only when the headers say so") func rateLimited() throws {
         let client = GitHubClient(token: "t")
-        #expect(throws: (any Error).self) {
-            try client.validate(statusCode: 403)
+        let now = Date(timeIntervalSince1970: 1_000)
+        #expect(throws: AppError.rateLimited(Date(timeIntervalSince1970: 1_060))) {
+            try client.validate(statusCode: 403, headers: ["retry-after": "60"], now: now)
+        }
+        #expect(throws: AppError.rateLimited(Date(timeIntervalSince1970: 5_000))) {
+            try client.validate(statusCode: 403, headers: ["x-ratelimit-remaining": "0",
+                                                           "x-ratelimit-reset": "5000"], now: now)
+        }
+        #expect(throws: AppError.forbidden) {
+            try client.validate(statusCode: 403, headers: [:], now: now)
         }
     }
 

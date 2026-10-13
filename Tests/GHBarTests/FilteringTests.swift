@@ -45,6 +45,15 @@ private func snapshot(
 @Suite("Filtering")
 struct FilteringTests {
 
+    @Test("a hidden section does not take items from the others") func hiddenSectionDoesNotClaim() {
+        var s = Settings.default
+        s.showReviewRequested = false
+        let pr = makeItem(1)
+        let sections = Filtering.sections(from: snapshot(prs: [pr], review: [pr]), settings: s)
+        #expect(sections.first { $0.kind == .pullRequests }?.items.map(\.number) == [1])
+        #expect(!sections.contains { $0.kind == .reviewRequested })
+    }
+
     @Test("botlar varsayilan olarak elenir") func removesBots() {
         let snap = snapshot(prs: [makeItem(1), makeItem(2, bot: true)])
         let sections = Filtering.sections(from: snap, settings: .default)

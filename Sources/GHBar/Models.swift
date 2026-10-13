@@ -125,4 +125,6 @@ struct Snapshot: Sendable {
     let myPullRequests: [Item]
     let rateLimit: RateLimit
     let truncated: Set<SectionKind>
+    /// Errors GitHub sent along with otherwise usable data.
+    var warnings: [String] = []
 }

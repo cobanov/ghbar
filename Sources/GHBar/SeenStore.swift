@@ -10,9 +10,15 @@ struct SeenState: Codable, Equatable {
     /// ayni kume sanildiginda su hata cikti: ogeler tiklanana kadar gorulmemis
     /// kaldigi icin her yenilemede ayni eski ogeler yeniden bildirildi.
     var notified: Set<String> = []
+    /// When GitHub last returned each URL in any search, filtered or not. Entries are
+    /// forgotten by age, not because a filter hid them for a while.
+    var returned: [String: Date] = [:]
+    /// The section each URL last appeared in (`SectionKind` raw value), to notice an item
+    /// moving to a stronger signal, such as a pull request whose review now asks for changes.
+    var sections: [String: String] = [:]
 
     private enum CodingKeys: String, CodingKey {
-        case version, bootstrapped, seen, notified
+        case version, bootstrapped, seen, notified, returned, sections
     }
 
     init() {}
@@ -25,6 +31,8 @@ struct SeenState: Codable, Equatable {
         // v1 dosyalarinda notified yok; eksikligi SeenStore yukseltme olarak
         // algilar ve ilk yenilemede sessizce doldurur.
         notified = try c.decodeIfPresent(Set<String>.self, forKey: .notified) ?? []
+        returned = try c.decodeIfPresent([String: Date].self, forKey: .returned) ?? [:]
+        sections = try c.decodeIfPresent([String: String].self, forKey: .sections) ?? [:]
     }
 }
 
@@ -46,7 +54,9 @@ final class SeenStore {
         self.url = url
         let loaded = Self.load(from: url)
         self.state = loaded
-        self.needsNotificationBackfill = loaded.bootstrapped && loaded.notified.isEmpty
+        // Only a real v1 file: a v2 file has an empty `notified` too whenever nothing was open.
+        self.needsNotificationBackfill = loaded.bootstrapped && loaded.version < 2
+        self.state.version = 2
     }
 
     var isFirstRun: Bool { !state.bootstrapped }
@@ -96,10 +106,44 @@ final class SeenStore {
         return needsNotificationBackfill
     }
 
-    /// Kapanmis/merge olmus ogeleri duser; yoksa dosya sonsuza kadar buyur.
-    func prune(keeping live: Set<String>) {
-        state.seen = state.seen.filter { live.contains($0.key) }
-        state.notified = state.notified.filter { live.contains($0) }
+    /// Notes that GitHub returned these URLs now. Entries from before this was recorded
+    /// count as returned now, so an upgrade does not forget them.
+    func recordReturned(_ urls: Set<String>, at now: Date) {
+        for url in urls { state.returned[url] = now }
+        for url in Set(state.seen.keys).union(state.notified) where state.returned[url] == nil {
+            state.returned[url] = now
+        }
+    }
+
+    /// Forgets items GitHub has not returned for `maxAge`: closed or merged ones, mostly.
+    /// Hiding something with a filter does not count, so undoing the filter brings it back
+    /// with its seen and notified marks.
+    func prune(now: Date, maxAge: TimeInterval = 14 * 86_400) {
+        let stale = Set(state.returned.filter { now.timeIntervalSince($0.value) > maxAge }.keys)
+        guard !stale.isEmpty else { return }
+        for url in stale {
+            state.returned[url] = nil
+            state.seen[url] = nil
+            state.sections[url] = nil
+        }
+        state.notified.subtract(stale)
+    }
+
+    /// Records each item's section and returns those that moved to a stronger one (earlier in
+    /// `SectionKind.displayOrder`). Those count as new again: unseen and not yet notified.
+    func promote(_ placement: [String: SectionKind]) -> Set<String> {
+        let rank = { (raw: String?) in raw.flatMap(SectionKind.init(rawValue:))
+            .flatMap(SectionKind.displayOrder.firstIndex(of:)) }
+        var promoted: Set<String> = []
+        for (url, kind) in placement {
+            if let before = rank(state.sections[url]), let now = rank(kind.rawValue), now < before {
+                promoted.insert(url)
+                state.seen[url] = nil
+                state.notified.remove(url)
+            }
+            state.sections[url] = kind.rawValue
+        }
+        return promoted
     }
 
     /// Cikis: durum tamamen sifirlanir ve diske yazilir (spec §5 — Sign Out

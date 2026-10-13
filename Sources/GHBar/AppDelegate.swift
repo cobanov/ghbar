@@ -22,6 +22,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var social: Social?
     private var rateLimit: RateLimit?
     private var errors: [AppError] = []
+    /// Warnings shown with fresh data: dropped filters, GitHub's partial errors.
+    private var notices: [String] = []
+    /// No refreshes until then: GitHub's rate limit is spent.
+    private var rateLimitedUntil: Date?
     private var lastRefresh: Date?
     private var refreshGate = RefreshGate()
     private var timer: Timer?
@@ -64,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
         notifier.onOpenSummary = { [weak self] in self?.panel.open() }
         notifier.start()
+        Task.detached(priority: .background) { AuthorAvatars.prune() }
         rebuildMenu()
 
         scheduleTimer()
@@ -97,7 +102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            // The network is usually not back the moment the lid opens, and the overdue
+            // timer would fire too: restart the timer and refresh once, a little later.
+            Task { @MainActor in
+                self?.scheduleTimer()
+                try? await Task.sleep(for: .seconds(5))
+                self?.refresh()
+            }
         }
 
         refresh()
@@ -111,6 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                      repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        timer?.tolerance = Settings.refreshInterval() / 10
     }
 
     func refresh() {
@@ -119,74 +131,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             defer { if refreshGate.finish() { refresh() } }
 
+            // While GitHub's rate limit is spent, asking again only lengthens the wait.
+            if let until = rateLimitedUntil, until > Date() {
+                rebuildMenu()
+                return
+            }
+
             // Kapi acildi; menu artik "Refreshing…" gosterebilir.
             rebuildMenu()
 
-            do {
-                guard let token = session.token() else {
-                    // Oturum yoklugu hata satiri degil, panelde eyleme cagri.
-                    clearAccountData()
-                    rebuildMenu()
-                    if !welcomedThisLaunch {
-                        welcomedThisLaunch = true
-                        welcome.show()
-                    }
-                    return
+            // Results of a refresh that outlives a sign-out or an account switch are dropped.
+            let generation = session.generation
+            guard let token = await session.token(), session.generation == generation else {
+                // Oturum yoklugu hata satiri degil, panelde eyleme cagri.
+                clearAccountData()
+                rebuildMenu()
+                if !welcomedThisLaunch {
+                    welcomedThisLaunch = true
+                    welcome.show()
                 }
-                welcomedThisLaunch = true
+                return
+            }
+            welcomedThisLaunch = true
+            rebuildMenu()   // the session is known now; drop any "Sign in" the panel showed
+
+            do {
                 let settings = Settings.fromDefaults()
                 let queries = Query.build(settings)
 
-                var collected: [AppError] = []
-                if queries.allowListEmpty { collected.append(.allowListEmpty) }
-                if queries.filtersDropped { collected.append(.filtersDropped) }
+                var notes: [String] = []
+                if queries.allowListEmpty { notes.append(AppError.allowListEmpty.menuText) }
+                if queries.filtersDropped { notes.append(AppError.filtersDropped.menuText) }
 
                 guard !queries.allowListEmpty else {
-                    errors = collected
+                    errors = []
+                    notices = notes
                     sections = []
                     rebuildMenu()
                     return
                 }
 
                 let snapshot = try await GitHubClient(token: token).fetch(queries)
-                let built = Filtering.sections(from: snapshot, settings: settings)
-                let all = built.flatMap(\.items)
-
-                // Ayarlar > Accounts icin kim oldugu (her iki kaynakta da) ve
-                // Ayarlar > Repositories icin aktivite listesi.
-                session.loaded(login: snapshot.viewer.login)
-                Defaults[.knownOrganizations] = snapshot.viewer.organizations
-                Defaults[.knownRepos] = Dictionary(grouping: all, by: \.repository)
-                    .mapValues(\.count)
-
-                // Bildirim "gorulmemis"e degil "hic bildirilmemis"e bakar.
-                // Gorulmusluk kullanici tiklayinca degisen bir menu durumu;
-                // ikisi ayni kume sanildiginda her yenilemede ayni eski
-                // ogeler yeniden bildiriliyordu. Ilk calistirmada ve v1->v2
-                // yukseltmesinde mevcut ogeler sessizce isaretlenir.
-                let firstRun = seenStore.markFirstRunDone()
-                let backfill = seenStore.claimNotificationBackfill()
-                let fresh = (firstRun || backfill) ? [] : seenStore.unnotified(among: all)
-                seenStore.markNotified(all.map(\.url))
-                seenStore.prune(keeping: Set(all.map(\.url)))
-                try? seenStore.save()
-                if Defaults[.notificationsEnabled] { notifier.notify(about: fresh) }
-
-                // Avatar bir kez inip diske yaziliyor; URL degisirse yenileniyor.
-                if await Avatar.refresh(from: snapshot.viewer.avatarURL) {
-                    NSLog("GHBar: profil fotografi indirildi")
-                }
-
-                viewer = snapshot.viewer
-                social = snapshot.social
-                rateLimit = snapshot.rateLimit
-                sections = built
-                errors = collected
-                lastRefresh = Date()
+                guard session.generation == generation else { return }
+                apply(snapshot, settings: settings, notes: notes)
             } catch AppError.unauthorized {
                 // GitHub token'i reddetti: hata satiri degil, yeniden giris cagrisi.
-                session.markExpired()
+                guard session.generation == generation else { return }
+                session.markExpired(generation: generation)
                 clearAccountData()
+            } catch AppError.rateLimited(let resetAt) {
+                rateLimitedUntil = resetAt
+                errors = [.rateLimited(resetAt)]
             } catch let error as AppError {
                 errors = [error]
             } catch {
@@ -197,9 +192,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func apply(_ snapshot: Snapshot, settings: Settings, notes: [String]) {
+        let now = Date()
+        // A different account than the one whose data is stored: start over, so its
+        // organizations, repositories and seen marks do not leak into the new account.
+        if let owner = Defaults[.signedInLogin], owner != snapshot.viewer.login {
+            resetAccountScopedState()
+        }
+        session.loaded(login: snapshot.viewer.login)
+
+        let built = Filtering.sections(from: snapshot, settings: settings)
+        let all = built.flatMap(\.items)
+
+        // Ayarlar > Repositories icin aktivite listesi. Merged rather than replaced: a
+        // repository hidden by the allow list must stay in the list to be ticked again.
+        Defaults[.knownOrganizations] = snapshot.viewer.organizations
+        var repos = Defaults[.knownRepos].mapValues { _ in 0 }
+        for (repo, items) in Dictionary(grouping: all, by: \.repository) { repos[repo] = items.count }
+        Defaults[.knownRepos] = repos
+
+        // Gorulme ve bildirim kaydi. Everything GitHub returned counts as still around, even
+        // what a filter hides; entries are forgotten by age.
+        let returned = snapshot.prs + snapshot.issues + snapshot.review
+            + snapshot.changesRequested + snapshot.myPullRequests
+        seenStore.recordReturned(Set(returned.map(\.url)), at: now)
+        seenStore.prune(now: now)
+        var placement: [String: SectionKind] = [:]
+        for section in built { for item in section.items { placement[item.url] = section.kind } }
+        _ = seenStore.promote(placement)
+
+        // Your own pull requests are not news to you: no notification, no badge.
+        let incoming = built.filter { $0.kind != .myPullRequests }.flatMap(\.items)
+        let firstRun = seenStore.markFirstRunDone()
+        let backfill = seenStore.claimNotificationBackfill()
+        let fresh = (firstRun || backfill) ? [] : seenStore.unnotified(among: incoming)
+        seenStore.markNotified(all.map(\.url))
+        try? seenStore.save()
+        if Defaults[.notificationsEnabled] { notifier.notify(about: fresh) }
+
+        viewer = snapshot.viewer
+        social = snapshot.social
+        rateLimit = snapshot.rateLimit
+        rateLimitedUntil = snapshot.rateLimit.remaining == 0 ? snapshot.rateLimit.resetAt : nil
+        sections = built
+        errors = []
+        notices = notes + snapshot.warnings
+        lastRefresh = now
+
+        // Avatar bir kez inip diske yaziliyor; it no longer holds up the results.
+        let address = snapshot.viewer.avatarURL
+        Task { [weak self] in
+            if await Avatar.refresh(from: address) { self?.rebuildMenu() }
+        }
+    }
+
+    /// What belongs to one GitHub account and must not carry over to another.
+    private func resetAccountScopedState() {
+        Defaults[.organizations] = []
+        Defaults[.knownOrganizations] = []
+        Defaults[.knownRepos] = [:]
+        seenStore.reset()
+        Avatar.forget()
+    }
+
     private func rebuildMenu() {
-        let unseen = sections.flatMap(\.items).filter { !seenStore.isSeen($0.url) }.count
-        statusItem.button?.title = unseen > 0 ? " \(unseen)" : ""
+        // Your own pull requests are never "new": they do not count, and show no green dot.
+        let mine = Set(sections.filter { $0.kind == .myPullRequests }.flatMap(\.items).map(\.url))
+        let unseen = sections.filter { $0.kind != .myPullRequests }.flatMap(\.items)
+            .filter { !seenStore.isSeen($0.url) }.count
+        statusItem.button?.title = session.state.isSignedIn && unseen > 0 ? " \(unseen)" : ""
 
         let settings = Settings.fromDefaults()
         panelModel.input = PanelInput(
@@ -208,6 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             sections: sections,
             rateLimit: rateLimit,
             errors: errors,
+            notices: notices,
             lastRefresh: lastRefresh,
             auth: session.state,
             isRefreshing: refreshGate.isRunning,
@@ -215,10 +277,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             knownOrganizations: Defaults[.knownOrganizations],
             selectedOrganizations: settings.organizations,
             repositoryFilterActive: !settings.repoList.isEmpty,
+            repositoryFilterIsAllowList: settings.repoListIsAllowList,
             visibleSections: settings.visibleSections,
             showEmptySections: settings.showEmptySections,
             rateLimitVisibility: settings.rateLimitVisibility,
-            isSeen: { [seenStore] url in seenStore.isSeen(url) },
+            isSeen: { [seenStore] url in mine.contains(url) || seenStore.isSeen(url) },
             now: Date()
         )
         panel.contentChanged()
@@ -283,8 +346,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// until the user chooses it.
     private func signOut() {
         session.signOut()
-        Defaults[.knownOrganizations] = []
-        seenStore.reset()
+        resetAccountScopedState()
+        Defaults[.signedInLogin] = nil
         clearAccountData()
         rebuildMenu()
     }
@@ -293,6 +356,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func clearAccountData() {
         sections = []
         errors = []
+        notices = []
+        rateLimitedUntil = nil
         viewer = nil
         social = nil
         rateLimit = nil

@@ -5,6 +5,8 @@ struct DeviceCodeGrant: Equatable, Sendable {
     let userCode: String
     let verificationURI: String
     let interval: Int
+    /// Seconds the code stays valid; GitHub gives 900.
+    var expiresIn: Int = 900
 }
 
 enum DeviceFlowError: Error, Equatable {
@@ -44,7 +46,8 @@ struct DeviceFlowAuth: Sendable {
             deviceCode: device,
             userCode: user,
             verificationURI: uri,
-            interval: object["interval"] as? Int ?? 5
+            interval: object["interval"] as? Int ?? 5,
+            expiresIn: object["expires_in"] as? Int ?? 900
         )
     }
 
@@ -52,13 +55,22 @@ struct DeviceFlowAuth: Sendable {
     /// araliga uyar; slow_down gelirse 5 sn ekler (RFC 8628).
     func waitForToken(_ grant: DeviceCodeGrant) async throws -> String {
         var interval = max(pollFloor, TimeInterval(grant.interval))
+        let deadline = Date().addingTimeInterval(TimeInterval(grant.expiresIn))
         while true {
             try await Task.sleep(for: .seconds(interval))
-            let data = try await post("https://github.com/login/oauth/access_token", form: [
-                "client_id": clientID,
-                "device_code": grant.deviceCode,
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-            ])
+            let data: Data
+            do {
+                data = try await post("https://github.com/login/oauth/access_token", form: [
+                    "client_id": clientID,
+                    "device_code": grant.deviceCode,
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                ])
+            } catch DeviceFlowError.network {
+                // A dropped connection or a GitHub hiccup while the user is approving:
+                // keep waiting until the code expires instead of giving up.
+                if Date() > deadline { throw DeviceFlowError.expired }
+                continue
+            }
             guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 throw DeviceFlowError.malformed("access_token")
             }

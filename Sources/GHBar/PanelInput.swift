@@ -7,7 +7,10 @@ struct PanelInput {
     var social: Social?
     var sections: [MenuSection]
     var rateLimit: RateLimit?
+    /// Why the last refresh failed; the panel then shows older data, if any.
     var errors: [AppError]
+    /// Warnings that came with fresh data.
+    var notices: [String] = []
     var lastRefresh: Date?
     var auth: AuthState
     var isSignedOut: Bool { !auth.isSignedIn }
@@ -18,6 +21,7 @@ struct PanelInput {
     /// Whether the repository allow or block list narrows the results, so an empty panel can
     /// say why it is empty.
     var repositoryFilterActive: Bool = false
+    var repositoryFilterIsAllowList: Bool = false
     var visibleSections: Set<SectionKind>
     /// Keep a tab for each chosen section even when it has nothing in it.
     var showEmptySections: Bool = false

@@ -2,7 +2,7 @@ import SwiftUI
 import Defaults
 
 @MainActor
-final class SettingsController {
+final class SettingsController: NSObject, NSWindowDelegate {
 
     var onSignOut: (() -> Void)?
     var onSignIn: (() -> Void)?
@@ -20,10 +20,16 @@ final class SettingsController {
         window.title = "GHBar Settings"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
+        window.delegate = self
         window.center()
         self.window = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate()
+    }
+
+    /// Closed by any means, including the red button: let the window and its views go.
+    func windowWillClose(_ notification: Notification) {
+        window = nil
     }
 }
 
@@ -56,10 +62,10 @@ struct SettingsView: View {
                         Label(tab.rawValue, systemImage: tab.symbol)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
-                            .foregroundColor(selectedTab == tab ? .white : .primary)
+                            .foregroundColor(.primary)
                             .background(
                                 RoundedRectangle(cornerRadius: 7)
-                                    .fill(selectedTab == tab ? Color.accentColor : .clear)
+                                    .fill(selectedTab == tab ? Color.primary.opacity(0.1) : .clear)
                             )
                     }
                     .buttonStyle(.plain)
@@ -335,14 +341,17 @@ struct GeneralPane: View {
 
     var body: some View {
         Form {
-            Section("Tabs") {
-                Toggle("Pull Requests", isOn: $showPullRequests)
-                Toggle("Issues", isOn: $showIssues)
-                Toggle("Review Requested", isOn: $showReviewRequested)
-                Toggle("Changes Requested", isOn: $showChangesRequested)
-                Toggle("My Pull Requests", isOn: $showMyPullRequests)
+            Section("Tabs in the panel") {
+                Toggle(SectionKind.reviewRequested.tabTitle(short: false), isOn: $showReviewRequested)
+                Toggle("\(SectionKind.changesRequested.tabTitle(short: false)) requested on your pull requests",
+                       isOn: $showChangesRequested)
+                Toggle(SectionKind.pullRequests.tabTitle(short: false), isOn: $showPullRequests)
+                Toggle(SectionKind.issues.tabTitle(short: false), isOn: $showIssues)
+                Toggle(SectionKind.myPullRequests.tabTitle(short: false), isOn: $showMyPullRequests)
                 Toggle("Keep empty tabs visible", isOn: $showEmptySections)
-                Picker("Show rate limit", selection: $rateLimitVisibility) {
+            }
+            Section("Panel footer") {
+                Picker("Show API calls left", selection: $rateLimitVisibility) {
                     Text("Never").tag(RateLimitVisibility.never.rawValue)
                     Text("When low").tag(RateLimitVisibility.whenLow.rawValue)
                     Text("Always").tag(RateLimitVisibility.always.rawValue)

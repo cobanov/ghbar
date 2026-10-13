@@ -10,19 +10,25 @@ enum Keychain {
     static let defaultService = "run.cobanov.ghbar"
     private static let account = "github-token"
 
-    static func save(token: String, service: String = defaultService) {
-        // SecItemUpdate + Add dansi yerine sil-ve-ekle: tek kayit, az kod.
-        delete(service: service)
+    /// Replaces the stored token. Updates in place, so a failed write leaves the old one.
+    @discardableResult
+    static func save(token: String, service: String = defaultService) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecValueData as String: Data(token.utf8),
         ]
-        let status = SecItemAdd(query as CFDictionary, nil)
+        let data = Data(token.utf8)
+        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecItemNotFound {
+            var add = query
+            add[kSecValueData as String] = data
+            status = SecItemAdd(add as CFDictionary, nil)
+        }
         if status != errSecSuccess {
             NSLog("GHBar: keychain yazilamadi: \(status)")
         }
+        return status == errSecSuccess
     }
 
     static func token(service: String = defaultService) -> String? {

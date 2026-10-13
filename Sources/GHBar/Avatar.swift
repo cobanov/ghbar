@@ -16,11 +16,27 @@ enum Avatar {
     private static var imageURL: URL { directory.appendingPathComponent("avatar.png") }
     private static var stampURL: URL { directory.appendingPathComponent("avatar-source.txt") }
 
+    /// The decoded picture, kept in memory: views ask for it on every redraw.
+    @MainActor private static var memory: NSImage?
+    @MainActor private static var loaded = false
+
     /// Diskteki fotografi verilen boyutta, daire kirpilmis olarak dondurur.
+    @MainActor
     static func cached(size: CGFloat) -> NSImage? {
-        guard let data = try? Data(contentsOf: imageURL),
-              let image = NSImage(data: data) else { return nil }
-        return circular(image, size: size)
+        if !loaded {
+            loaded = true
+            memory = (try? Data(contentsOf: imageURL)).flatMap(NSImage.init(data:))
+        }
+        return memory.map { circular($0, size: size) }
+    }
+
+    /// Drops the stored picture; another account is signing in.
+    @MainActor
+    static func forget() {
+        try? FileManager.default.removeItem(at: imageURL)
+        try? FileManager.default.removeItem(at: stampURL)
+        memory = nil
+        loaded = true
     }
 
     /// Gerekliyse indirir. Ayni URL daha once indirildiyse hicbir sey yapmaz
@@ -40,6 +56,7 @@ enum Avatar {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? data.write(to: imageURL, options: .atomic)
         try? address.write(to: stampURL, atomically: true, encoding: .utf8)
+        await MainActor.run { loaded = false }
         return true
     }
 

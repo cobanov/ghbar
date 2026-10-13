@@ -59,13 +59,37 @@ struct SeenStoreTests {
         #expect(store.newItems(among: [makeItem(1), makeItem(2), makeItem(3)]).map(\.number) == [2, 3])
     }
 
-    @Test("listede olmayan kayitlar temizlenir") func prune() {
+    @Test("items GitHub stopped returning are forgotten after two weeks") func prune() {
         let store = SeenStore(url: temporaryURL())
-        store.markSeen(["a", "b", "c"], at: Date())
-        store.prune(keeping: ["a", "c"])
+        let start = Date(timeIntervalSince1970: 0)
+        store.markSeen(["a", "b", "c"], at: start)
+        store.recordReturned(["a", "b", "c"], at: start)
+        store.recordReturned(["a", "c"], at: start.addingTimeInterval(10 * 86_400))
+        store.prune(now: start.addingTimeInterval(15 * 86_400))
         #expect(store.isSeen("a") == true)
         #expect(store.isSeen("b") == false)
         #expect(store.isSeen("c") == true)
+    }
+
+    @Test("an item hidden by a filter for a while keeps its marks") func filterKeepsMarks() {
+        let store = SeenStore(url: temporaryURL())
+        let start = Date(timeIntervalSince1970: 0)
+        store.markSeen(["a"], at: start)
+        store.markNotified(["a"])
+        store.recordReturned(["a"], at: start)
+        store.prune(now: start.addingTimeInterval(3 * 86_400))
+        #expect(store.isSeen("a"))
+        #expect(store.unnotified(among: [makeItem(1)]).count == 1)   // makeItem(1) is not "a"
+    }
+
+    @Test("moving to a stronger section makes an item new again") func promotion() {
+        let store = SeenStore(url: temporaryURL())
+        #expect(store.promote(["a": .myPullRequests]).isEmpty)
+        store.markSeen(["a"], at: Date())
+        store.markNotified(["a"])
+        #expect(store.promote(["a": .changesRequested]) == ["a"])
+        #expect(store.isSeen("a") == false)
+        #expect(store.promote(["a": .myPullRequests]).isEmpty)   // moving down is not news
     }
 
     @Test("bozuk dosya cokmez, sifirlanir") func corruptFile() throws {
@@ -113,10 +137,19 @@ struct SeenStoreNotifiedTests {
 
     @Test("prune bildirilmis kumesini de temizler") func pruneNotified() {
         let store = SeenStore(url: temporaryURL())
-        store.markNotified(["a", "b"])
-        store.prune(keeping: ["a"])
-        // "b" dustu: ayni URL geri gelirse (reopen) yeniden bildirilebilir
+        let start = Date(timeIntervalSince1970: 0)
+        store.markNotified(["https://example.com/1", "b"])
+        store.recordReturned(["https://example.com/1", "b"], at: start)
+        store.prune(now: start.addingTimeInterval(15 * 86_400))
+        // dustu: ayni URL geri gelirse (reopen) yeniden bildirilebilir
         #expect(store.unnotified(among: [makeItem(1)]).count == 1)
+    }
+
+    @Test("a v2 file with nothing notified is not an upgrade") func v2EmptyNotified() throws {
+        let url = temporaryURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Data(#"{"version":2,"bootstrapped":true,"seen":{},"notified":[]}"#.utf8).write(to: url)
+        #expect(SeenStore(url: url).claimNotificationBackfill() == false)
     }
 
     @Test("v1 dosyasi (notified alani yok) yukseltme sayilir: TEK seferlik backfill") func v1Upgrade() throws {

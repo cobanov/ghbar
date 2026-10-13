@@ -102,7 +102,7 @@ struct ResponseParserTests {
         #expect(snap.viewer.organizations == [])
     }
 
-    @Test("issueCount 100'e dayaninca kirpilma bayragi kalkar") func truncation() throws {
+    @Test("more than 100 results sets the truncation flag; exactly 100 does not") func truncation() throws {
         let json = """
         {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
           "prs":{"issueCount":140,"nodes":[]},
@@ -115,7 +115,30 @@ struct ResponseParserTests {
         let snap = try ResponseParser.parse(json)
         #expect(snap.truncated.contains(.pullRequests))
         #expect(!snap.truncated.contains(.issues))
-        #expect(snap.truncated.contains(.changesRequested))
+        #expect(!snap.truncated.contains(.changesRequested))
+    }
+
+    @Test("data with errors about one part is kept; null nodes are skipped") func partialErrors() throws {
+        let json = """
+        {"errors":[{"message":"Org acme has an IP allow list","type":"FORBIDDEN"}],
+         "data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
+          "prs":{"issueCount":2,"nodes":[null,{"number":1,"title":"T","url":"u1","createdAt":"2026-08-18T12:00:00Z",
+                  "isDraft":false,"author":{"login":"b","__typename":"User"},"repository":{"nameWithOwner":"a/r"}}]},
+          "issues":null,
+          "review":{"issueCount":0,"nodes":[]},
+          "changesRequested":{"issueCount":0,"nodes":[]},
+          "myPullRequests":{"issueCount":0,"nodes":[]},
+          "rateLimit":{"limit":5000,"remaining":1,"resetAt":"2026-08-18T13:00:00Z"}}}
+        """.data(using: .utf8)!
+        let snap = try ResponseParser.parse(json)
+        #expect(snap.prs.map(\.number) == [1])
+        #expect(snap.issues.isEmpty)
+        #expect(snap.warnings == ["Org acme has an IP allow list"])
+    }
+
+    @Test("GraphQL's rate limit error is recognised") func rateLimitError() throws {
+        let json = #"{"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}"#.data(using: .utf8)!
+        #expect(throws: ParseError.rateLimited) { try ResponseParser.parse(json) }
     }
 
     @Test("GraphQL hatasi tasinir") func graphQLError() throws {

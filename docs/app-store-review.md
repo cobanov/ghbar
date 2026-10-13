@@ -53,7 +53,8 @@ Apple'ın istediği bilgiler.
 
 ## 1. Notes alanına yapıştırılacak metin
 
-**Yapıldı** — 21 Ağustos 11:14'te Notes alanına yazıldı ve kaydedildi;
+**Güncel metin** — 13 Ekim'de API ile yazıldı (3.979 karakter, panele göre).
+İlk sürümü 21 Ağustos 11:14'te Notes alanına yazılmış ve kaydedilmişti;
 sayfa yeniden yüklenerek doğrulandı (3.857 karakter, 4.000 sınırının altında).
 Aşağıdaki metin kayıt için duruyor.
 
@@ -70,10 +71,11 @@ app deliberately has no Dock icon and no main window.
 GHBar is a menu bar accessory app (LSUIElement = true). After launching it,
 nothing appears in the Dock or in the app switcher. Look for the GHBar icon
 in the menu bar at the top-right of the screen, next to the system icons,
-and click it to open the app's menu. On first launch a "Welcome to GHBar"
-window also opens automatically.
+and click it: a panel opens below the icon. Click the icon again, press
+Escape or click anywhere else to close it. On first launch a "Welcome to
+GHBar" window also opens automatically.
 
-2. SIGNING IN — DEMO ACCOUNT
+2. SIGNING IN - DEMO ACCOUNT
 Sign-in uses GitHub's OAuth 2.0 Device Authorization Grant (RFC 8628):
   a. Click "Sign in with GitHub" in the Welcome window.
   b. The app shows an 8-character code, copies it to the clipboard and opens
@@ -82,45 +84,46 @@ Sign-in uses GitHub's OAuth 2.0 Device Authorization Grant (RFC 8628):
      Information fields above (username: ghbar-review). Two-factor
      authentication is disabled on that account.
   d. Paste the code, click Continue, then Authorize.
-  e. The Welcome window closes and the menu is populated.
-Please leave the "Include private repositories" checkbox unchecked — all of
-the demo account's content is public. If github.com asks for a verification
-code sent by email, please tell us in Resolution Center and we will provide
-it immediately.
+  e. The Welcome window closes and the panel is populated.
+Please leave "Include private repositories" unchecked; the demo account's
+content is all public. If github.com asks for an emailed verification code,
+tell us in Resolution Center and we will send it right away.
 
 3. WHAT THE APP DOES AND WHO IT IS FOR
 GHBar shows a developer the pull requests and issues that OTHER people have
 opened on their own GitHub repositories, plus pull requests waiting on their
-review, as a menu bar list with an unread count. GitHub's own notification
+review, in a menu bar panel with an unread count. GitHub's own notification
 inbox mixes these with comments, CI results and subscribed threads; GHBar
 isolates the one signal that requires the repository owner to act. Target
 audience: developers and open source maintainers who own GitHub
 repositories. The demo account is prepared with 2 pull requests, 3 issues
-and 1 review request, so all three sections of the menu are populated.
+and 1 review request, so the panel's "To review", "Pull requests" and
+"Issues" tabs are all populated. Clicking a row opens it on github.com.
 
 4. DEVICES AND OPERATING SYSTEMS TESTED
-  - Mac mini (Mac16,11), Apple M4 Pro, macOS 26.6.1 (build 25G76)
-A physical Mac, not a virtual machine. The submitted build is installed and
-in daily use on this machine.
+  - Mac mini (Mac16,11), Apple M4 Pro, macOS 27.0.1
+  - MacBook Air (Mac16,12), Apple M4, macOS 27.0
+Physical Macs, not virtual machines.
 
 5. EXTERNAL SERVICES USED
-  - GitHub GraphQL API (api.github.com) — the only data source. Queried with
+  - GitHub GraphQL API (api.github.com) - the only data source. Queried with
     the signed-in user's own OAuth token, one request per refresh.
-  - GitHub OAuth device flow (github.com/login/device) — authentication.
-There is no other network destination. GHBar has no server or backend of its
-own, no analytics, no crash reporting, no advertising SDK, no AI service and
-no payment processing.
+  - GitHub OAuth device flow (github.com/login/device) - authentication.
+  - GitHub avatars (avatars.githubusercontent.com) - the public profile
+    pictures of the people who opened each pull request or issue, as shown
+    on github.com.
+No other network destination. No server of its own, no analytics, no crash
+reporting, no ads, no AI service, no payments.
 
 6. REGIONAL DIFFERENCES
 None. The app behaves identically in every region, has a single English
 localization, and contains no region-gated content, features or pricing.
 
 7. REGULATED INDUSTRY / THIRD-PARTY MATERIAL
-Not applicable. GHBar is a developer tool and does not operate in a regulated
-industry. It displays only content from the signed-in user's own GitHub
-account, retrieved with that user's own credentials through GitHub's public
-API and under GitHub's Terms of Service. No third-party protected material is
-bundled: the app icon and the entire interface are original work. GHBar is an
+Not applicable. GHBar is a developer tool, not a regulated industry. It shows
+only content from the signed-in user's own GitHub account, fetched with that
+user's own credentials through GitHub's public API. No third-party protected
+material is bundled; the icon and interface are original work. GHBar is an
 independent open-source project (MIT licensed) and is not affiliated with or
 endorsed by GitHub, Inc. Source code: https://github.com/cobanov/ghbar
 
@@ -132,8 +135,8 @@ The OAuth token is stored only in the macOS Keychain. Privacy policy:
 https://ghbar.cobanov.dev/privacy
 
 9. SCREEN RECORDING
-A recording of the complete flow — launch, menu bar icon, sign-in, populated
-menu, opening an item, settings — is attached to this submission.
+A recording of the complete flow - launch, menu bar icon, sign-in, populated
+panel, opening an item, settings - is attached to this submission.
 ```
 
 ---
@@ -154,13 +157,13 @@ A summary:
 
 - GHBar is a macOS menu bar utility. It has no Dock icon and no main window
   by design (LSUIElement). After launch, the app is accessed by clicking the
-  GHBar icon in the menu bar at the top-right of the screen. A "Welcome to
+  GHBar icon in the menu bar at the top-right of the screen, which opens a panel. A "Welcome to
   GHBar" window also opens automatically on first launch.
 - Demo account credentials are in the Sign-In Information fields (username:
   ghbar-review, two-factor authentication disabled). Sign-in uses GitHub's
   OAuth 2.0 Device Authorization Grant; step-by-step instructions are in the
   Notes field. The account is prepared with pull requests, issues and a
-  review request so that every section of the menu shows content.
+  review request so that every tab of the panel shows content.
 - The app's only external service is the GitHub API, queried with the
   signed-in user's own token. GHBar has no server, no analytics and no
   third-party SDKs, and collects no data.

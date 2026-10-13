@@ -42,7 +42,9 @@ enum TokenProvider {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = ["auth", "token"]
+        // Only github.com: with no host, gh prints whichever host it has, which may be an
+        // Enterprise server whose token must not go to api.github.com.
+        process.arguments = ["auth", "token", "--hostname", "github.com"]
 
         let output = Pipe()
         let errors = Pipe()
@@ -54,6 +56,10 @@ enum TokenProvider {
         } catch {
             throw AppError.ghNotFound
         }
+        // gh can wait on a keychain prompt; do not let that hold a refresh forever.
+        let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5, execute: watchdog)
+        defer { watchdog.cancel() }
 
         // Boru dolup surecin kilitlenmemesi icin once oku, sonra bekle.
         let data = output.fileHandleForReading.readDataToEndOfFile()

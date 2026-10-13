@@ -23,8 +23,10 @@ enum Filtering {
         }
 
         return SectionKind.displayOrder.compactMap { kind in
-            let items = take(kind)
+            // A hidden section must not claim items, or a pull request in both the review and
+            // the PR search would vanish from both when reviews are hidden.
             guard settings.visibleSections.contains(kind) else { return nil }
+            let items = take(kind)
             guard !items.isEmpty else { return nil }   // bos bolum hic gosterilmez
             return MenuSection(
                 kind: kind,

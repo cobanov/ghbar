@@ -3,7 +3,7 @@ import Defaults
 
 /// Hos geldin / giris penceresi (spec §11). Token yokken menuden acilir.
 @MainActor
-final class WelcomeController {
+final class WelcomeController: NSObject, NSWindowDelegate {
 
     var onSignedIn: (() -> Void)?
     private var window: NSWindow?
@@ -22,6 +22,7 @@ final class WelcomeController {
         window.title = "Welcome to GHBar"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
+        window.delegate = self
         window.center()
         self.window = window
         window.makeKeyAndOrderFront(nil)
@@ -30,6 +31,11 @@ final class WelcomeController {
 
     func close() {
         window?.close()
+        window = nil
+    }
+
+    /// Closed by any means, including the red button: let the window and its views go.
+    func windowWillClose(_ notification: Notification) {
         window = nil
     }
 }
@@ -47,7 +53,8 @@ struct WelcomeView: View {
     @State private var stage: Stage = .idle
     @State private var flow: Task<Void, Never>?
     @State private var copied = false
-    @Default(.includePrivateRepos) private var includePrivate
+    /// The choice for this sign-in only; what was granted is saved once sign-in succeeds.
+    @State private var includePrivate = Defaults[.includePrivateRepos]
     @ObservedObject private var session = AuthSession.shared
     /// The account `gh` is signed in with, looked up once when the window opens.
     @State private var githubCLILogin: String?
@@ -71,7 +78,13 @@ struct WelcomeView: View {
                 // With gh signed in, using its account is one click and comes first.
                 if let login = githubCLILogin, session.state.source != .githubCLI {
                     Button("Continue as @\(login)") {
-                        if session.useGitHubCLI() { onSignedIn() }
+                        Task {
+                            if await session.useGitHubCLI() {
+                                onSignedIn()
+                            } else {
+                                stage = .failed("The GitHub CLI is no longer signed in.")
+                            }
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -165,7 +178,10 @@ struct WelcomeView: View {
                 }
                 let token = try await auth.waitForToken(grant)
                 try Task.checkCancellation()
-                session.signedIn(oauthToken: token, privateAccess: includePrivate)
+                guard session.signedIn(oauthToken: token, privateAccess: includePrivate) else {
+                    stage = .failed("GitHub approved, but macOS would not save the sign-in to the Keychain.")
+                    return
+                }
                 stage = .idle
                 onSignedIn()
             } catch is CancellationError {
@@ -174,6 +190,8 @@ struct WelcomeView: View {
                 stage = .failed("Access was denied on GitHub.")
             } catch DeviceFlowError.expired {
                 stage = .failed("The code expired. Try again.")
+            } catch DeviceFlowError.malformed(let code) {
+                stage = .failed("GitHub couldn't complete the sign-in (\(code)). Try again.")
             } catch {
                 if Task.isCancelled { stage = .idle; return }
                 stage = .failed("Couldn't reach GitHub. Check your connection.")

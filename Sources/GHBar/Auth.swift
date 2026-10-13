@@ -69,48 +69,63 @@ final class AuthSession: ObservableObject {
 
     @Published private(set) var state: AuthState = .signedOut
     @Published private(set) var login: String? = Defaults[.signedInLogin]
+    /// Bumped by every sign-in and sign-out. A refresh notes it before going to the network
+    /// and drops its results if it changed meanwhile.
+    private(set) var generation = 0
+
+    private var cached: (token: String, source: AuthSource)?
+    /// A token GitHub refused this session; `gh` keeps handing out the same one.
+    private var rejected: String?
 
     /// Whether the OAuth token was granted the private-repository scope.
     var privateAccess: Bool { Defaults[.includePrivateRepos] }
 
-    /// The token to use now, adopting a source on first use. Updates `state`.
-    func token() -> String? {
+    /// The token to use now, adopting a source on first use. Updates `state`. The Keychain
+    /// and `gh` are asked off the main thread; `gh` can take a while.
+    func token() async -> String? {
+        if let cached, state == .signedIn(cached.source) { return cached.token }
         let recorded = Defaults[.authSource].flatMap(AuthSource.init(rawValue:))
-        let resolved = Auth.resolve(Auth.Inputs(
-            recorded: recorded,
-            signedOutByUser: Defaults[.signedOutByUser],
-            existingInstall: !Defaults[.knownRepos].isEmpty,
-            keychainToken: { Keychain.token() },
-            ghToken: { TokenProvider.ghTokenIfAvailable() }
-        ))
-        guard let resolved else {
+        let signedOutByUser = Defaults[.signedOutByUser]
+        let existingInstall = !Defaults[.knownRepos].isEmpty
+        let resolved = await Task.detached {
+            Auth.resolve(Auth.Inputs(
+                recorded: recorded,
+                signedOutByUser: signedOutByUser,
+                existingInstall: existingInstall,
+                keychainToken: { Keychain.token() },
+                ghToken: { TokenProvider.ghTokenIfAvailable() }
+            )).map { [$0.token, $0.source.rawValue] }
+        }.value
+        guard let resolved, let source = AuthSource(rawValue: resolved[1]), resolved[0] != rejected else {
             state = recorded.map(AuthState.expired) ?? .signedOut
             return nil
         }
-        if recorded == nil { Defaults[.authSource] = resolved.source.rawValue }
-        if state != .signedIn(resolved.source) { state = .signedIn(resolved.source) }
-        return resolved.token
+        if recorded == nil { Defaults[.authSource] = source.rawValue }
+        cached = (resolved[0], source)
+        if state != .signedIn(source) { state = .signedIn(source) }
+        return resolved[0]
     }
 
-    /// The device flow finished: this token replaces whatever was there before.
-    func signedIn(oauthToken token: String, privateAccess: Bool) {
-        Keychain.save(token: token)
+    /// The device flow finished: this token replaces whatever was there before. False if the
+    /// Keychain refused it, in which case nothing changed.
+    func signedIn(oauthToken token: String, privateAccess: Bool) -> Bool {
+        guard Keychain.save(token: token) else { return false }
         Defaults[.includePrivateRepos] = privateAccess
         Defaults[.authSource] = AuthSource.oauth.rawValue
         Defaults[.signedOutByUser] = false
-        setLogin(nil)
-        state = .signedIn(.oauth)
+        begin(.signedIn(.oauth), token: (token, .oauth))
+        return true
     }
 
     /// Use the account `gh` is signed in with. False if there is none.
-    @discardableResult
-    func useGitHubCLI() -> Bool {
-        guard TokenProvider.ghTokenIfAvailable() != nil else { return false }
+    func useGitHubCLI() async -> Bool {
+        guard let token = await Task.detached(operation: { TokenProvider.ghTokenIfAvailable() }).value else {
+            return false
+        }
         Keychain.delete()
         Defaults[.authSource] = AuthSource.githubCLI.rawValue
         Defaults[.signedOutByUser] = false
-        setLogin(nil)
-        state = .signedIn(.githubCLI)
+        begin(.signedIn(.githubCLI), token: (token, .githubCLI))
         return true
     }
 
@@ -119,18 +134,29 @@ final class AuthSession: ObservableObject {
         Defaults[.authSource] = nil
         Defaults[.signedOutByUser] = true
         setLogin(nil)
-        state = .signedOut
+        begin(.signedOut, token: nil)
     }
 
-    /// GitHub answered 401. An OAuth token that GitHub refuses is of no further use.
-    func markExpired() {
-        guard let source = state.source else { return }
+    /// GitHub answered 401 for a refresh started in `generation`. An OAuth token that GitHub
+    /// refuses is of no further use; a refused `gh` token is not tried again this session.
+    func markExpired(generation: Int) {
+        guard generation == self.generation, let source = state.source else { return }
         if source == .oauth { Keychain.delete() }
+        rejected = cached?.token
+        cached = nil
         state = .expired(source)
     }
 
+    /// The account GitHub says the token belongs to.
     func loaded(login: String) {
         if self.login != login { setLogin(login) }
+    }
+
+    private func begin(_ state: AuthState, token: (String, AuthSource)?) {
+        generation += 1
+        cached = token
+        rejected = nil
+        self.state = state
     }
 
     private func setLogin(_ login: String?) {
@@ -140,8 +166,8 @@ final class AuthSession: ObservableObject {
 
     /// The login `gh` is signed in with, if this build can use the GitHub CLI and it is signed
     /// in. Never in the App Store build, which cannot run other programs.
-    static func githubCLILogin() async -> String? {
-        guard let token = TokenProvider.ghTokenIfAvailable(),
+    nonisolated static func githubCLILogin() async -> String? {
+        guard let token = await Task.detached(operation: { TokenProvider.ghTokenIfAvailable() }).value,
               let url = URL(string: "https://api.github.com/user") else { return nil }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

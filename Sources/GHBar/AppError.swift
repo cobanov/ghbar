@@ -13,6 +13,8 @@ enum AppError: Error, Equatable {
     case ghNotAuthenticated
     /// GitHub answered 401: the token was revoked or expired.
     case unauthorized
+    /// GitHub answered 403 without it being a rate limit: SSO or an IP allow list.
+    case forbidden
     case network(String)
     case graphQL(String)
     case parse(String)
@@ -30,6 +32,8 @@ enum AppError: Error, Equatable {
             "Not signed in — run: gh auth login"
         case .unauthorized:
             "GitHub no longer accepts this sign-in"
+        case .forbidden:
+            "GitHub refused the request. An organization may require SSO or an IP allow list."
         case .network:
             "No connection"
         case .graphQL(let message):
