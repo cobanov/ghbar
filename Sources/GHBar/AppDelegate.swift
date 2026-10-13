@@ -139,7 +139,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard refreshGate.begin() else { return }
 
         Task { @MainActor in
-            defer { if refreshGate.finish() { refresh() } }
+            // The panel learns the refresh ended only here: every rebuild above still saw
+            // the gate running, and the refresh button kept spinning.
+            defer { if refreshGate.finish() { refresh() } else { rebuildMenu() } }
 
             // While GitHub's rate limit is spent, asking again only lengthens the wait.
             if let until = rateLimitedUntil, until > Date() {

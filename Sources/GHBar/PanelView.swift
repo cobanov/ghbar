@@ -675,18 +675,26 @@ struct IconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(hover ? Ink.primary : Ink.secondary)
-                .rotationEffect(.degrees(spinning ? 360 : 0))
-                .animation(spinning ? .linear(duration: 0.9).repeatForever(autoreverses: false) : .default, value: spinning)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(hover ? Ink.raised : .clear))
-                .contentShape(Circle())
+            // Driven by the clock rather than a repeating animation, which keeps running
+            // (or winds backwards) after `spinning` turns false.
+            TimelineView(.animation(paused: !spinning)) { context in
+                Image(systemName: symbol)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(hover ? Ink.primary : Ink.secondary)
+                    .rotationEffect(.degrees(spinning ? Self.angle(at: context.date) : 0))
+            }
+            .frame(width: 28, height: 28)
+            .background(Circle().fill(hover ? Ink.raised : .clear))
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .help(help)
+    }
+
+    /// One turn every 0.9 seconds.
+    private static func angle(at date: Date) -> Double {
+        date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 0.9) / 0.9 * 360
     }
 }
 
