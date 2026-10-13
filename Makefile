@@ -6,6 +6,8 @@
 #   make notarize   Apple'a noterlet ve staple et
 #   make zip        dagitilabilir arsiv
 #   make release    yukaridakilerin hepsi, sirayla
+#   make publish    GitHub Release + Homebrew cask
+#   make site       ghbar.cobanov.dev'yi (install.sh dahil) yayinla
 #   make install    /Applications'a kur ve baslat
 #   make test       testler
 #   make clean
@@ -27,8 +29,15 @@ ZIP         := $(BUILD_DIR)/$(APP)-$(VERSION)-macos.zip
 SIGN_ID     := Developer ID Application: AHMET MERT COBANOGLU (6U58AKY6F8)
 # xcrun notarytool store-credentials ile kaydedilen profil adi.
 NOTARY_PROFILE := ghbar
+# Ya da App Store Connect API anahtari: make notarize NOTARY_KEY_ID=... NOTARY_ISSUER=...
+# Anahtar ~/.appstoreconnect/private_keys/AuthKey_<id>.p8 konumunda olmali.
+NOTARY_KEY_ID ?=
+NOTARY_ISSUER ?=
+NOTARY_AUTH = $(if $(NOTARY_KEY_ID),--key "$(HOME)/.appstoreconnect/private_keys/AuthKey_$(NOTARY_KEY_ID).p8" --key-id "$(NOTARY_KEY_ID)" --issuer "$(NOTARY_ISSUER)",--keychain-profile "$(NOTARY_PROFILE)")
+# install.sh surumden bagimsiz bu adi indirir (releases/latest/download/...).
+LATEST_ZIP  := $(BUILD_DIR)/$(APP)-macos.zip
 
-.PHONY: all build test icon bundle sign notarize zip release install clean run publish tap check build-mas bundle-mas sign-mas pkg
+.PHONY: all build test icon bundle sign notarize zip release install clean run publish tap site check build-mas bundle-mas sign-mas pkg
 
 all: build
 
@@ -96,10 +105,10 @@ bundle: build $(ICNS)
 
 sign: bundle
 	codesign --force --options runtime --timestamp \
-	  --sign "$(SIGN_ID)" \
+	  --keychain "$(SIGN_KEYCHAIN)" --sign "$(SIGN_ID)" \
 	  $(CONTENTS)/MacOS/$(APP)
 	codesign --force --options runtime --timestamp \
-	  --sign "$(SIGN_ID)" \
+	  --keychain "$(SIGN_KEYCHAIN)" --sign "$(SIGN_ID)" \
 	  $(APP_BUNDLE)
 	@echo "--- dogrulama ---"
 	codesign --verify --deep --strict --verbose=2 $(APP_BUNDLE)
@@ -109,8 +118,7 @@ sign: bundle
 # Staple sayesinde kullanicinin makinesi cevrimdisiyken bile dogrulanir.
 
 notarize: sign zip
-	xcrun notarytool submit $(ZIP) \
-	  --keychain-profile "$(NOTARY_PROFILE)" --wait
+	xcrun notarytool submit $(ZIP) $(NOTARY_AUTH) --wait
 	xcrun stapler staple $(APP_BUNDLE)
 	@rm -f $(ZIP)
 	$(MAKE) zip
@@ -139,7 +147,8 @@ publish:
 	@echo "--- noterleme dogrulamasi ---"
 	@spctl --assess --type execute --verbose=4 $(APP_BUNDLE) 2>&1 | grep -q accepted \
 	  || { echo "HATA: paket Gatekeeper'dan gecmiyor, yayinlanmayacak"; exit 1; }
-	gh release create v$(VERSION) $(ZIP) \
+	cp $(ZIP) $(LATEST_ZIP)
+	gh release create v$(VERSION) $(ZIP) $(LATEST_ZIP) \
 	  --title "GHBar $(VERSION)" \
 	  --notes-file docs/release-notes/v$(VERSION).md \
 	  --repo cobanov/ghbar
@@ -161,6 +170,12 @@ tap:
 	    -f message="ghbar $(VERSION)" -f content="$$B64" > /dev/null; \
 	fi; \
 	echo "tap guncellendi: brew install hazir"
+
+# ghbar.cobanov.dev (Cloudflare Pages). install.sh oradan sunuluyor:
+#   curl -fsSL https://ghbar.cobanov.dev/install.sh | sh
+site:
+	cp install.sh site/install.sh
+	wrangler pages deploy site --project-name ghbar --branch main --commit-dirty=true
 
 # --- Kurulum ------------------------------------------------------------
 

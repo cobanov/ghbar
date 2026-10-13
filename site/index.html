@@ -76,11 +76,10 @@
     </div>
 
     <!--
-      Urun gorseli: ekran goruntusu degil, menunun HTML/CSS ile yeniden
-      cizimi. Her cozunurlukte net kaliyor ve uygulama degistiginde
-      goruntuyu yeniden cekmek gerekmiyor.
+      Urun gorseli: panel, uygulamanin kendisinden ornek veriyle cizildi
+      (GHBar --render-panel). Panel degisince yeniden cizilmeli.
     -->
-    <div class="hero-shot" aria-label="GHBar menu preview">
+    <div class="hero-shot" aria-label="GHBar panel preview">
       <div class="menubar glass">
         <span class="mb-dot"></span>
         <span class="mb-item">100%</span>
@@ -90,56 +89,7 @@
         <span class="mb-item">21:04</span>
       </div>
 
-      <div class="menu glass" role="presentation">
-        <div class="row row-profile">
-          <img src="/assets/ghbar-icon.png" alt="" width="20" height="20" class="avatar" />
-          <span class="label">Mert Cobanov</span><span class="value">@cobanov</span>
-        </div>
-        <div class="sep"></div>
-
-        <div class="section-head">Pull Requests</div>
-        <div class="row">
-          <svg class="ico new" viewBox="0 0 16 16"><use href="#pr-glyph"/></svg>
-          <span class="label">herdrchat #55</span>
-          <span class="value">Let the last row scroll clear…</span><span class="age">17h</span>
-        </div>
-        <div class="row">
-          <svg class="ico new" viewBox="0 0 16 16"><use href="#pr-glyph"/></svg>
-          <span class="label">prprinter #7</span>
-          <span class="value">Add B1 label templates</span><span class="age">2d</span>
-        </div>
-        <div class="row seen">
-          <svg class="ico" viewBox="0 0 16 16"><use href="#pr-glyph"/></svg>
-          <span class="label">awesome-diffusion #1</span>
-          <span class="value">Add prompt-to-asset</span><span class="age">3mo</span>
-        </div>
-        <div class="row group">
-          <svg class="ico folder" viewBox="0 0 16 16"><use href="#folder-glyph"/></svg>
-          <span class="label">team-cobanov — 50 pull requests</span>
-          <span class="chev">›</span>
-        </div>
-        <div class="sep"></div>
-
-        <div class="section-head">Issues</div>
-        <div class="row">
-          <svg class="ico new issue" viewBox="0 0 16 16"><use href="#issue-glyph"/></svg>
-          <span class="label">bucketmark #12</span>
-          <span class="value">MCP endpoint returns 421…</span><span class="age">2d</span>
-        </div>
-        <div class="row group">
-          <svg class="ico folder" viewBox="0 0 16 16"><use href="#folder-glyph"/></svg>
-          <span class="label">paul-graham-turkce — 18 issues</span>
-          <span class="chev">›</span>
-        </div>
-        <div class="sep"></div>
-
-        <div class="section-head">API</div>
-        <div class="row quiet">
-          <svg class="ico gauge" viewBox="0 0 16 16"><use href="#gauge-glyph"/></svg>
-          <span class="label">Rate Limit</span>
-          <span class="value">4,911 / 5,000</span><span class="age">resets 58m</span>
-        </div>
-      </div>
+      <img class="panel-shot" src="/assets/panel.png" width="380" height="433" alt="The GHBar panel: tabs for reviews, pull requests and issues, each row with its author" />
     </div>
   </div>
 </section>
@@ -235,6 +185,14 @@ is:pr    is:open review-requested:@me     <span class="c">→ Review Requested</
   <h2>Install</h2>
 
   <div class="install-grid">
+    <div class="card glass">
+      <h3>Terminal</h3>
+      <pre class="code inline"><code>curl -fsSL https://ghbar.cobanov.dev/install.sh | sh</code></pre>
+      <button class="btn btn-ghost small copy" data-copy="curl -fsSL https://ghbar.cobanov.dev/install.sh | sh">
+        <span class="copy-label">Copy command</span>
+      </button>
+    </div>
+
     <div class="card glass">
       <h3>Homebrew</h3>
       <pre class="code inline"><code>brew install --cask cobanov/tap/ghbar</code></pre>
