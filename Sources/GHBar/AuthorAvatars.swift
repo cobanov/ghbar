@@ -6,6 +6,8 @@ final class AuthorAvatars: ObservableObject {
     static let shared = AuthorAvatars()
 
     @Published private var images: [String: NSImage] = [:]
+    /// Set for screenshots: draw initials instead of fetching anyone's picture.
+    static var offline = false
     private var pending: Set<String> = []
 
     nonisolated private static let folder = FileManager.default
@@ -14,6 +16,7 @@ final class AuthorAvatars: ObservableObject {
 
     /// The picture if it is at hand; otherwise starts fetching it and returns nil for now.
     func image(_ login: String) -> NSImage? {
+        guard !Self.offline else { return nil }
         if let image = images[login] { return image }
         let file = Self.folder.appendingPathComponent("\(login).png")
         if let image = NSImage(contentsOf: file) {

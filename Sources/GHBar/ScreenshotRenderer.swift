@@ -29,18 +29,19 @@ enum ScreenshotRenderer {
         let shots: [(String, String, String, NSImage)] = [
             ("1-menu",
              "Your repositories, at a glance",
-             "Pull requests and issues from your repos — in the menu bar.",
-             render(PanelPreview.sample(), logicalWidth: 380)),
+             "Pull requests and issues people open on your repos — in the menu bar.",
+             render(PanelPreview.sample(tab: .pullRequests), logicalWidth: 380)),
             ("2-repositories",
              "Silence the noisy repos",
              "Every repository GHBar has seen. Uncheck one to hide it.",
              // TabView ekransiz renderda ilk sekmeyi acar ve sekme cubugu
              // bozuk cizilir; paneli dogrudan kart icinde render ediyoruz.
              render(PaneCard { RepositoriesPane() }, logicalWidth: 470)),
-            ("3-signin",
-             "Sign in with GitHub",
-             "Device flow sign-in — or your gh token, picked up automatically.",
-             render(WelcomeView(onSignedIn: {}), logicalWidth: 340)),
+            // Was the sign-in window; Guideline 2.3.3 asks for the app in use, not its login.
+            ("3-review",
+             "Know what waits on you",
+             "Reviews requested from you get their own tab. Green means you haven't seen it yet.",
+             render(PanelPreview.sample(tab: .reviewRequested), logicalWidth: 380)),
         ]
 
         for (name, headline, sub, ui) in shots {
@@ -79,7 +80,7 @@ enum ScreenshotRenderer {
 
         let rep = NSBitmapImageRep(
             bitmapDataPlanes: nil,
-            pixelsWide: Int(size.width * 2), pixelsHigh: Int(size.height * 2),
+            pixelsWide: Int(size.width * 3), pixelsHigh: Int(size.height * 3),
             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
             colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
         )!
@@ -136,10 +137,10 @@ enum ScreenshotRenderer {
         let available = height - 240
         var uiSize = ui.size
         let maxHeight = available - 60
-        if uiSize.height > maxHeight {
-            let factor = maxHeight / uiSize.height
-            uiSize = NSSize(width: uiSize.width * factor, height: uiSize.height * factor)
-        }
+        // Fill the space, up to half again its size: a 380-point panel is small on a 1440 canvas.
+        // The UI is rendered at 3x so the enlargement stays sharp.
+        let factor = min(maxHeight / uiSize.height, 1.5)
+        uiSize = NSSize(width: uiSize.width * factor, height: uiSize.height * factor)
         let uiOrigin = NSPoint(x: (width - uiSize.width) / 2,
                                y: (available - uiSize.height) / 2 + 40)
 

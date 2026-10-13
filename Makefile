@@ -10,7 +10,7 @@
 #   make test       testler
 #   make clean
 
-VERSION     := 0.2.0
+VERSION     := 0.3.0
 APP         := GHBar
 BUNDLE_ID   := run.cobanov.ghbar
 MIN_MACOS   := 14.0
@@ -187,6 +187,9 @@ MAS_CONTENTS  := $(MAS_BUNDLE)/Contents
 MAS_SIGN_ID   := 2632468CDF18C5FAFC4A6C2CC26EC610EAE84922
 MAS_PKG_ID    := 3rd Party Mac Developer Installer: AHMET MERT COBANOGLU (6U58AKY6F8)
 MAS_PROFILE   := Packaging/GHBar_MAS.provisionprofile
+# Ayni kimlik baska bir keychain'de de var (cobanov-signing); codesign kilitli
+# olanini secip errSecInternalComponent veriyordu. Imzalar bu keychain'den.
+SIGN_KEYCHAIN := $(HOME)/Library/Keychains/ghbar-signing.keychain-db
 PKG           := $(BUILD_DIR)/$(APP)-$(VERSION)-mas.pkg
 
 # Iki varyanti da derle + testler. Yayin oncesi tek dogrulama kapisi
@@ -229,17 +232,17 @@ bundle-mas: build-mas $(ICNS)
 sign-mas: bundle-mas
 	codesign --force --timestamp \
 	  --entitlements Packaging/GHBar-MAS.entitlements \
-	  --sign "$(MAS_SIGN_ID)" $(MAS_CONTENTS)/MacOS/$(APP)
+	  --keychain "$(SIGN_KEYCHAIN)" --sign "$(MAS_SIGN_ID)" $(MAS_CONTENTS)/MacOS/$(APP)
 	codesign --force --timestamp \
 	  --entitlements Packaging/GHBar-MAS.entitlements \
-	  --sign "$(MAS_SIGN_ID)" $(MAS_BUNDLE)
+	  --keychain "$(SIGN_KEYCHAIN)" --sign "$(MAS_SIGN_ID)" $(MAS_BUNDLE)
 	codesign --verify --deep --strict $(MAS_BUNDLE)
 
 # App Store'a gidecek .pkg. Yukleme Transporter.app ile yapilir (kullanici).
 pkg: sign-mas
 	@rm -f $(PKG)
 	productbuild --component $(MAS_BUNDLE) /Applications \
-	  --sign "$(MAS_PKG_ID)" $(PKG)
+	  --keychain "$(SIGN_KEYCHAIN)" --sign "$(MAS_PKG_ID)" $(PKG)
 	@echo "App Store paketi: $(PKG) — Transporter.app ile yukle"
 
 clean:

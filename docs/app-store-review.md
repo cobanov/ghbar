@@ -4,7 +4,15 @@
 **Gerekçe:** Guideline 2.1 — Information Needed, New App Submission.
 **Mesaj tarihi:** 20 Ağustos 2026, 19:24.
 
-> **Durum (21 Ağustos 11:16):** Notes alanı dolduruldu ve kaydedildi.
+> **Durum (13 Ekim 2026):** Menü yerine yeni panel geldi, **0.3.0 build'i
+> yüklendi** ve 1.0 sürümüne bağlanacak. Notes alanı panele göre güncellendi
+> (3.979 karakter): menü yerine panel, iki test cihazı, avatar alan adı
+> (`avatars.githubusercontent.com`). Ekran görüntüleri yenilendi; giriş ekranı
+> olan 3. görüntü "To review" sekmesiyle değişti (bölüm 4'teki risk kapandı).
+> **Kalan:** yeni panelle ekran kaydı → taslak cevaba ekle → Reply → Resubmit.
+> Çekim listesi bölüm 3'te, panele göre güncel.
+
+> **Eski durum (21 Ağustos 11:16):** Notes alanı dolduruldu ve kaydedildi.
 > Resolution Center cevabı **taslak** olarak kaydedildi, gönderilmedi.
 > Kalan tek adım: ekran kaydını çekip cevaba eklemek, sonra Reply + Resubmit.
 > Ayrıntı için bölüm 6.
@@ -193,11 +201,11 @@ rm -rf ~/Library/Containers/run.cobanov.ghbar
 3. Açılan Welcome penceresinde "Sign in with GitHub"a tıkla.
 4. Tarayıcı `github.com/login/device`'ı açar; `ghbar-review` hesabıyla gir,
    kodu yapıştır, Authorize'a bas.
-5. Menü çubuğu simgesine tıkla — Pull Requests, Issues ve Review Requested
-   bölümlerinin dolu olduğu görünsün.
+5. Menü çubuğu simgesine tıkla — panel açılsın; "To review", "Pull requests"
+   ve "Issues" sekmelerine sırayla tıkla, üçü de dolu görünsün.
 6. Bir satıra tıkla, GitHub tarayıcıda açılsın.
-7. Menüden Settings'i aç, üç sekmeyi de göster.
-8. Menüden Quit.
+7. Paneldeki "…" menüsünden Settings'i aç, üç sekmeyi de göster.
+8. "…" menüsünden Quit GHBar.
 
 Kaydı `.mov` olarak bırak. Notes'un altındaki **Attachment** alanına ekle;
 dosya büyükse bir yere yükleyip bağlantısını Notes'un 9. maddesine yaz.
@@ -257,8 +265,7 @@ kendi hesabının trafiği — bu "collection" sayılmaz.
 4. **Reply** düğmesine bas — cevap Apple'a o zaman gider.
 5. Sayfanın üstündeki **Resubmit to App Review**.
 
-Yeni build gerekmiyor — reddedilen 0.2.0 build'i duruyor, sadece metadata ve
-cevap değişiyor.
+13 Ekim'de 0.3.0 build'i yüklendi (yeni panel); 1.0 sürümü artık ona bağlı.
 
 Kayıt dosyası ekleyemeyecek kadar büyükse bir yere yükleyip bağlantısını
 cevaba ekle; Notes'un 9. maddesi "attached to this submission" diyor, o
@@ -271,7 +278,10 @@ make check        # iki varyant da derlenir, testler koşar
 make pkg          # build/GHBar-<VERSION>-mas.pkg, Distribution ile imzalı
 ```
 
-Sonra Transporter.app ile yükle. `Makefile` içindeki `VERSION`'ı artırmayı
+Sonra Transporter.app ile ya da API anahtarıyla yükle:
+`xcrun altool --upload-app -f build/GHBar-<VERSION>-mas.pkg -t macos --apiKey <KEY_ID> --apiIssuer <ISSUER>`.
+İmza `ghbar-signing` keychain'inden (`make` bunu `SIGN_KEYCHAIN` ile veriyor);
+kilitliyse önce `security unlock-keychain -p "$(cat ~/.ghbar-signing/.kcpass)" ~/Library/Keychains/ghbar-signing.keychain-db`. `Makefile` içindeki `VERSION`'ı artırmayı
 unutma — aynı build numarası ikinci kez kabul edilmiyor.
 
 ---
