@@ -337,6 +337,7 @@ struct GeneralPane: View {
     @Default(.showEmptySections) private var showEmptySections
     @Default(.rateLimitVisibility) private var rateLimitVisibility
     @Default(.repoGroupThreshold) private var groupThreshold
+    @Default(.checkForUpdates) private var checkForUpdates
 
     var body: some View {
         Form {
@@ -380,6 +381,9 @@ struct GeneralPane: View {
                     set: { LaunchAtLogin.set($0) }
                 ))
             }
+            #if !MAS
+            Toggle("Tell me when a new version is out", isOn: $checkForUpdates)
+            #endif
         }
         .formStyle(.grouped)
     }

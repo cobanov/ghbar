@@ -11,6 +11,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let seenStore = SeenStore(url: SeenStore.defaultURL)
     private let notifier = Notifier()
     private var toast: BarToast!
+    #if !MAS
+    private let updateChecker = UpdateChecker()
+    #endif
     private let welcome = WelcomeController()
     private let settingsWindow = SettingsController()
     private let session = AuthSession.shared
@@ -77,6 +80,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notifier.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
         notifier.onOpenSummary = { [weak self] in self?.panel.open() }
         notifier.start()
+        #if !MAS
+        updateChecker.start()
+        #endif
         Task.detached(priority: .background) { AuthorAvatars.prune() }
         rebuildMenu()
 

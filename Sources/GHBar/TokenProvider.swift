@@ -5,8 +5,8 @@ enum TokenProvider {
     /// gh'nin token'i, varsa. Hangi kaynagin kullanilacagina `Auth.resolve` karar verir.
     ///
     /// MAS varyantinda gh adimi DERLEME DISI (#if MAS): sandbox alt surec
-    /// calistiramaz, kacak bir cagri sessiz bozulma olurdu. Bu, #if MAS'in
-    /// koddaki tek kullanim yeridir (spec §20 korkuluk #1).
+    /// calistiramaz, kacak bir cagri sessiz bozulma olurdu. #if MAS bunun
+    /// disinda yalnizca guncelleme kontrolunu kapatir (UpdateChecker).
     static func ghTokenIfAvailable() -> String? {
         #if MAS
         return nil

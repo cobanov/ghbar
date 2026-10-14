@@ -36,6 +36,11 @@ extension Defaults.Keys {
     /// Set by Sign Out, so a signed-in `gh` is not picked up again behind the user's back.
     static let signedOutByUser = Key<Bool>("signedOutByUser", default: false)
     static let includePrivateRepos = Key<Bool>("includePrivateRepos", default: true)
+    /// Yeni surum kontrolu (MAS disinda). Gunde en fazla bir kez.
+    static let checkForUpdates = Key<Bool>("checkForUpdates", default: true)
+    static let lastUpdateCheck = Key<Date?>("lastUpdateCheck", default: nil)
+    /// "Skip This Version" ile atlanan surum; daha yenisi cikinca yine sorulur.
+    static let skippedVersion = Key<String?>("skippedVersion", default: nil)
 }
 
 extension Settings {
