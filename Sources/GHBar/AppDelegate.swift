@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem { panel.statusItem }
     private let seenStore = SeenStore(url: SeenStore.defaultURL)
     private let notifier = Notifier()
+    private var toast: BarToast!
     private let welcome = WelcomeController()
     private let settingsWindow = SettingsController()
     private let session = AuthSession.shared
@@ -41,7 +42,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
 
         panel = StatusPanel(style: PanelPreview.style) { PanelView(model: panelModel) }
-        panel.onOpen = { [weak self] in self?.panelWillOpen() }
+        panel.onOpen = { [weak self] in self?.toast.close(); self?.panelWillOpen() }
+        toast = BarToast(statusItem: panel.statusItem, style: PanelPreview.style)
+        toast.onOpen = { [weak self] url in self?.open(url, markSeen: true) }
+        toast.onOpenSummary = { [weak self] in self?.panel.open() }
         panelModel.actions = PanelActions(
             open: { [weak self] item in self?.panel.close(); self?.open(item.url, markSeen: true) },
             markAllSeen: { [weak self] in self?.markAllSeen() },
@@ -122,6 +126,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pathMonitor.start(queue: .global(qos: .utility))
 
         refresh()
+
+        // Gizli bayrak: kutuyu ornek ogelerle goster. Kullanim: GHBar --demo-toast [adet]
+        if let flag = CommandLine.arguments.firstIndex(of: "--demo-toast") {
+            let count = CommandLine.arguments.indices.contains(flag + 1)
+                ? Int(CommandLine.arguments[flag + 1]) ?? 1 : 1
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2))
+                self.toast.show(BarToast.demoItems(count))
+            }
+        }
     }
 
     // MARK: - Yenileme
@@ -243,6 +257,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         seenStore.markNotified(all.map(\.url))
         try? seenStore.save()
         if Defaults[.notificationsEnabled] { notifier.notify(about: fresh) }
+        // Panel aciksa yeni ogeler zaten gozunun onunde.
+        if Defaults[.showBarToast], !panel.isOpen { toast.show(fresh) }
 
         viewer = snapshot.viewer
         social = snapshot.social

@@ -326,6 +326,7 @@ struct RepositoriesPane: View {
 struct GeneralPane: View {
     @Default(.refreshMinutes) private var refreshMinutes
     @Default(.notificationsEnabled) private var notificationsEnabled
+    @Default(.showBarToast) private var showBarToast
     @Default(.showBots) private var showBots
     @Default(.showDrafts) private var showDrafts
     @Default(.showPullRequests) private var showPullRequests
@@ -364,6 +365,7 @@ struct GeneralPane: View {
                 Text("1 hour").tag(60)
             }
             Toggle("Show notifications", isOn: $notificationsEnabled)
+            Toggle("Drop a pop-up from the menu bar icon", isOn: $showBarToast)
             Toggle("Show bot activity", isOn: $showBots)
             Toggle("Show draft pull requests", isOn: $showDrafts)
             Picker("Group repositories with more than", selection: $groupThreshold) {

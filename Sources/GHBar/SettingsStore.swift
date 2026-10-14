@@ -24,6 +24,8 @@ extension Defaults.Keys {
     static let refreshMinutes = Key<Int>("refreshMinutes", default: 5)
     static let repoGroupThreshold = Key<Int>("repoGroupThreshold", default: 3)
     static let notificationsEnabled = Key<Bool>("notificationsEnabled", default: true)
+    /// Yeni ogede menu cubugu ikonunun altindan inen kutu (BarToast).
+    static let showBarToast = Key<Bool>("showBarToast", default: true)
     /// Son cekimlerde oge ureten repolar (repo -> oge sayisi). Ayarlar >
     /// Repositories bu listeden dolar; kullanici repo adini elle yazmak
     /// zorunda kalmaz (spec §8: yazim hatasi sessizce hicbir seyi filtrelemez).
