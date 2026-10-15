@@ -24,6 +24,8 @@ extension Defaults.Keys {
     static let refreshMinutes = Key<Int>("refreshMinutes", default: 5)
     static let repoGroupThreshold = Key<Int>("repoGroupThreshold", default: 3)
     static let notificationsEnabled = Key<Bool>("notificationsEnabled", default: true)
+    /// Yeni ogede menu cubugu ikonunun altindan inen kutu (BarToast).
+    static let showBarToast = Key<Bool>("showBarToast", default: true)
     /// Son cekimlerde oge ureten repolar (repo -> oge sayisi). Ayarlar >
     /// Repositories bu listeden dolar; kullanici repo adini elle yazmak
     /// zorunda kalmaz (spec §8: yazim hatasi sessizce hicbir seyi filtrelemez).
@@ -34,6 +36,11 @@ extension Defaults.Keys {
     /// Set by Sign Out, so a signed-in `gh` is not picked up again behind the user's back.
     static let signedOutByUser = Key<Bool>("signedOutByUser", default: false)
     static let includePrivateRepos = Key<Bool>("includePrivateRepos", default: true)
+    /// Yeni surum kontrolu (MAS disinda). Gunde en fazla bir kez.
+    static let checkForUpdates = Key<Bool>("checkForUpdates", default: true)
+    static let lastUpdateCheck = Key<Date?>("lastUpdateCheck", default: nil)
+    /// "Skip This Version" ile atlanan surum; daha yenisi cikinca yine sorulur.
+    static let skippedVersion = Key<String?>("skippedVersion", default: nil)
 }
 
 extension Settings {

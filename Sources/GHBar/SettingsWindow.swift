@@ -326,6 +326,7 @@ struct RepositoriesPane: View {
 struct GeneralPane: View {
     @Default(.refreshMinutes) private var refreshMinutes
     @Default(.notificationsEnabled) private var notificationsEnabled
+    @Default(.showBarToast) private var showBarToast
     @Default(.showBots) private var showBots
     @Default(.showDrafts) private var showDrafts
     @Default(.showPullRequests) private var showPullRequests
@@ -336,6 +337,7 @@ struct GeneralPane: View {
     @Default(.showEmptySections) private var showEmptySections
     @Default(.rateLimitVisibility) private var rateLimitVisibility
     @Default(.repoGroupThreshold) private var groupThreshold
+    @Default(.checkForUpdates) private var checkForUpdates
 
     var body: some View {
         Form {
@@ -364,6 +366,7 @@ struct GeneralPane: View {
                 Text("1 hour").tag(60)
             }
             Toggle("Show notifications", isOn: $notificationsEnabled)
+            Toggle("Drop a pop-up from the menu bar icon", isOn: $showBarToast)
             Toggle("Show bot activity", isOn: $showBots)
             Toggle("Show draft pull requests", isOn: $showDrafts)
             Picker("Group repositories with more than", selection: $groupThreshold) {
@@ -378,6 +381,9 @@ struct GeneralPane: View {
                     set: { LaunchAtLogin.set($0) }
                 ))
             }
+            #if !MAS
+            Toggle("Tell me when a new version is out", isOn: $checkForUpdates)
+            #endif
         }
         .formStyle(.grouped)
     }
