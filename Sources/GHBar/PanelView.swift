@@ -438,7 +438,7 @@ struct PanelView: View {
                        "Some repositories are hidden; manage them in Settings.")
             }
             return ("You're all caught up",
-                    "New pull requests and issues on your repositories will show up here.")
+                    "New pull requests and issues on your repositories, and issues assigned to you, will show up here.")
         }()
         return VStack(spacing: 6) {
             Image(systemName: "checkmark.circle").font(.system(size: 22, weight: .light)).foregroundStyle(Ink.tertiary)
