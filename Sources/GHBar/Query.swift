@@ -3,6 +3,7 @@ import Foundation
 struct Queries: Sendable, Equatable {
     let prs: String
     let issues: String
+    let assignedIssues: String
     let review: String
     let changesRequested: String
     let myPullRequests: String
@@ -86,6 +87,14 @@ enum Query {
         )
         dropped = dropped || mineDropped
 
+        // The issues search only looks at your own repositories and skips
+        // what you opened, so issues assigned to you elsewhere need their own.
+        let (assignedParts, assignedDropped) = fit(
+            ["is:issue", "is:open", "assignee:@me"] + authoredScope,
+            exclusions: exclusions
+        )
+        dropped = dropped || assignedDropped
+
         // Without a sort GitHub returns "best match" first; when a search hits the 100-result
         // limit, newest first is what keeps the recent work in view.
         func sorted(_ query: String) -> String { query + " " + newestFirst }
@@ -93,6 +102,7 @@ enum Query {
         return Queries(
             prs:    sorted(assemble(["is:pr", "is:open"])),
             issues: sorted(assemble(["is:issue", "is:open"])),
+            assignedIssues: sorted(assignedParts.joined(separator: " ")),
             review: sorted(reviewParts.joined(separator: " ")),
             changesRequested: sorted(changesParts.joined(separator: " ")),
             myPullRequests: sorted(mineParts.joined(separator: " ")),
@@ -141,6 +151,7 @@ enum Query {
     query(
       $prs: String!,
       $issues: String!,
+      $assignedIssues: String!,
       $review: String!,
       $changesRequested: String!,
       $myPullRequests: String!,
@@ -174,6 +185,14 @@ enum Query {
         } }
       }
       issues: search(query: $issues, type: ISSUE, first: $first) {
+        issueCount
+        nodes { ... on Issue {
+          number title url createdAt
+          author { login __typename }
+          repository { nameWithOwner }
+        } }
+      }
+      assignedIssues: search(query: $assignedIssues, type: ISSUE, first: $first) {
         issueCount
         nodes { ... on Issue {
           number title url createdAt

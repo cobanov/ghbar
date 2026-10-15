@@ -58,6 +58,7 @@ struct GitHubClient {
             "variables": [
                 "prs": queries.prs,
                 "issues": queries.issues,
+                "assignedIssues": queries.assignedIssues,
                 "review": queries.review,
                 "changesRequested": queries.changesRequested,
                 "myPullRequests": queries.myPullRequests,

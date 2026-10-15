@@ -17,7 +17,9 @@ struct ResponseParserTests {
         #expect(snap.viewer.name == "Alice Smith")
         #expect(snap.viewer.organizations == ["acme"])
         #expect(snap.prs.count == 4)
-        #expect(snap.issues.count == 1)   // yazari null olan atildi
+        #expect(snap.issues.count == 2)   // yazari null olan atildi
+        // #12 comes back from both issue searches but is listed once.
+        #expect(snap.issues.map(\.number) == [12, 88])
         #expect(snap.review.count == 1)
         #expect(snap.changesRequested.count == 1)
         #expect(snap.myPullRequests.count == 2)

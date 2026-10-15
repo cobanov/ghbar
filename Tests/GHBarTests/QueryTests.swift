@@ -8,6 +8,7 @@ struct QueryTests {
         let q = Query.build(.default)
         #expect(q.prs    == "is:pr is:open user:@me -author:@me sort:created-desc")
         #expect(q.issues == "is:issue is:open user:@me -author:@me sort:created-desc")
+        #expect(q.assignedIssues == "is:issue is:open assignee:@me sort:created-desc")
         #expect(q.review == "is:pr is:open review-requested:@me sort:created-desc")
         #expect(q.changesRequested == "is:pr is:open author:@me review:changes_requested sort:created-desc")
         #expect(q.myPullRequests == "is:pr is:open author:@me sort:created-desc")
@@ -28,6 +29,7 @@ struct QueryTests {
         #expect(q.changesRequested
             == "is:pr is:open author:@me review:changes_requested org:acme sort:created-desc")
         #expect(q.myPullRequests == "is:pr is:open author:@me org:acme sort:created-desc")
+        #expect(q.assignedIssues == "is:issue is:open assignee:@me org:acme sort:created-desc")
     }
 
     @Test("kendi PR'lari hesap kapsamiyla daraltilmaz") func authoredIgnoresAccountScope() {
@@ -82,6 +84,7 @@ struct QueryTests {
         #expect(q.changesRequested
             == "is:pr is:open author:@me review:changes_requested repo:acme/one sort:created-desc")
         #expect(q.myPullRequests == "is:pr is:open author:@me repo:acme/one sort:created-desc")
+        #expect(q.assignedIssues == "is:issue is:open assignee:@me repo:acme/one sort:created-desc")
     }
 
     @Test("birden fazla hesap birden fazla user: parcasi verir") func multipleAccounts() {
