@@ -3,7 +3,7 @@ import Foundation
 @testable import GHBar
 
 private let sampleQueries = Queries(
-    prs: "P", issues: "I", review: "R",
+    prs: "P", issues: "I", assignedIssues: "A", review: "R",
     changesRequested: "C", myPullRequests: "M",
     filtersDropped: false, allowListEmpty: false
 )
@@ -24,6 +24,7 @@ struct GitHubClientTests {
         let variables = body["variables"] as! [String: Any]
         #expect(variables["prs"] as? String == "P")
         #expect(variables["issues"] as? String == "I")
+        #expect(variables["assignedIssues"] as? String == "A")
         #expect(variables["review"] as? String == "R")
         #expect(variables["changesRequested"] as? String == "C")
         #expect(variables["myPullRequests"] as? String == "M")

@@ -65,6 +65,9 @@ enum ResponseParser {
 
         let prs    = try search("prs",    kind: .pullRequest, section: .pullRequests)
         let issues = try search("issues", kind: .issue,       section: .issues)
+        let assigned = try search("assignedIssues", kind: .issue, section: .issues)
+        var issueURLs = Set(issues.map(\.url))
+        let allIssues = issues + assigned.filter { issueURLs.insert($0.url).inserted }
         let review = try search("review", kind: .pullRequest, section: .reviewRequested)
         let changesRequested = try search(
             "changesRequested",
@@ -89,7 +92,7 @@ enum ResponseParser {
             viewer: viewer,
             social: social,
             prs: prs,
-            issues: issues,
+            issues: allIssues,
             review: review,
             changesRequested: changesRequested,
             myPullRequests: myPullRequests,

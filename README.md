@@ -41,7 +41,8 @@ Open GHBar and sign in with GitHub. If the [GitHub CLI](https://cli.github.com) 
 you can continue as that account instead.
 
 Click the icon in the menu bar. The panel shows pull requests waiting for your review, pull
-requests and issues other people opened on your repositories, and your own open pull requests.
+requests and issues other people opened on your repositories, issues assigned to you, and your
+own open pull requests.
 Green marks what you haven't seen yet.
 
 | Key | |

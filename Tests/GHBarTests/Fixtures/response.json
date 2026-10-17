@@ -50,6 +50,19 @@
           "repository": { "nameWithOwner": "alice/webapp" } }
       ]
     },
+    "assignedIssues": {
+      "issueCount": 2,
+      "nodes": [
+        { "number": 12, "title": "Crash on cold start", "url": "https://github.com/alice/webapp/issues/12",
+          "createdAt": "2026-08-16T09:00:00Z",
+          "author": { "login": "erin", "__typename": "User" },
+          "repository": { "nameWithOwner": "alice/webapp" } },
+        { "number": 88, "title": "Export fails for large files", "url": "https://github.com/bob/tools/issues/88",
+          "createdAt": "2026-08-17T11:00:00Z",
+          "author": { "login": "alice", "__typename": "User" },
+          "repository": { "nameWithOwner": "bob/tools" } }
+      ]
+    },
     "review": {
       "issueCount": 1,
       "nodes": [
