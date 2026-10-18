@@ -104,6 +104,7 @@ bundle: build $(ICNS)
 # eski imzalar gecerli kalir.
 
 sign: bundle
+	@security unlock-keychain -p "$$(cat $(HOME)/.cobanov-signing/.kcpass)" $(SIGN_KEYCHAIN)
 	codesign --force --options runtime --timestamp \
 	  --keychain "$(SIGN_KEYCHAIN)" --sign "$(SIGN_ID)" \
 	  $(CONTENTS)/MacOS/$(APP)
