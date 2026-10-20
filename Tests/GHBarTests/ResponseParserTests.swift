@@ -17,7 +17,9 @@ struct ResponseParserTests {
         #expect(snap.viewer.name == "Alice Smith")
         #expect(snap.viewer.organizations == ["acme"])
         #expect(snap.prs.count == 4)
-        #expect(snap.issues.count == 1)   // yazari null olan atildi
+        #expect(snap.issues.count == 2)   // yazari null olan atildi
+        // #12 comes back from both issue searches but is listed once.
+        #expect(snap.issues.map(\.number) == [12, 88])
         #expect(snap.review.count == 1)
         #expect(snap.changesRequested.count == 1)
         #expect(snap.myPullRequests.count == 2)
@@ -38,6 +40,7 @@ struct ResponseParserTests {
         {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
           "prs":{"issueCount":0,"nodes":[]},
           "issues":{"issueCount":0,"nodes":[]},
+          "assignedIssues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":0,"nodes":[]},
           "myPullRequests":{"issueCount":0,"nodes":[]},
@@ -54,6 +57,7 @@ struct ResponseParserTests {
             "repositories":{"totalCount":140,"nodes":[{"stargazerCount":5}]}},
           "prs":{"issueCount":0,"nodes":[]},
           "issues":{"issueCount":0,"nodes":[]},
+          "assignedIssues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":0,"nodes":[]},
           "myPullRequests":{"issueCount":0,"nodes":[]},
@@ -79,6 +83,7 @@ struct ResponseParserTests {
             "author":{"login":"renovate[bot]","__typename":"User"},
             "repository":{"nameWithOwner":"a/b"}}]},
           "issues":{"issueCount":0,"nodes":[]},
+          "assignedIssues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":0,"nodes":[]},
           "myPullRequests":{"issueCount":0,"nodes":[]},
@@ -93,6 +98,7 @@ struct ResponseParserTests {
         {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
           "prs":{"issueCount":0,"nodes":[]},
           "issues":{"issueCount":0,"nodes":[]},
+          "assignedIssues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":0,"nodes":[]},
           "myPullRequests":{"issueCount":0,"nodes":[]},
@@ -107,6 +113,7 @@ struct ResponseParserTests {
         {"data":{"viewer":{"login":"a","name":null,"avatarUrl":"x"},
           "prs":{"issueCount":140,"nodes":[]},
           "issues":{"issueCount":3,"nodes":[]},
+          "assignedIssues":{"issueCount":0,"nodes":[]},
           "review":{"issueCount":0,"nodes":[]},
           "changesRequested":{"issueCount":100,"nodes":[]},
           "myPullRequests":{"issueCount":0,"nodes":[]},
